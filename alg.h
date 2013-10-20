@@ -31,9 +31,9 @@ struct segment {
     int count;
 };
 
-void alg_locate_center_size(struct images *, int width, int height, struct coord *);
-void alg_draw_location(struct coord *, struct images *, int width, unsigned char *, int, int, int);
-void alg_draw_red_location(struct coord *, struct images *, int width, unsigned char *, int, int, int);
+void alg_locate_center_size(struct images *, int width, int height, struct coord *, int tot_labels);
+void alg_draw_location(struct coord *, struct images *, int width, unsigned char *, int, int, int, int tot_labels);
+void alg_draw_red_location(struct coord *, struct images *, int width, unsigned char *, int, int, int, int tot_labels);
 int alg_diff(struct context *, unsigned char *);
 int alg_diff_standard(struct context *, unsigned char *);
 int alg_lightswitch(struct context *, int diffs);

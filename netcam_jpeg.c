@@ -328,7 +328,7 @@ static int netcam_init_jpeg(netcam_context_ptr netcam, j_decompress_ptr cinfo)
     /* Start the decompressor. */
     jpeg_start_decompress(cinfo);
 
-    MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO, "%s: jpeg_error %d",
+    MOTION_LOG(DBG, TYPE_NETCAM, NO_ERRNO, "%s: jpeg_error %d",
                netcam->jpeg_error);
 
     return netcam->jpeg_error;
@@ -409,7 +409,7 @@ static int netcam_image_conv(netcam_context_ptr netcam,
         /* Rotate as specified */
         rotate_map(netcam->cnt, image);
 
-    MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO, "%s: jpeg_error %d",
+    MOTION_LOG(DBG, TYPE_NETCAM, NO_ERRNO, "%s: jpeg_error %d",
                netcam->jpeg_error);
 
     return netcam->jpeg_error;

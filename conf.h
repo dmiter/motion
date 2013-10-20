@@ -20,7 +20,7 @@
  */
 struct config {
     unsigned int log_level;
-    char *log_type_str;
+    unsigned int log_type;
     char *log_file;
     int setup_mode;
     int width;

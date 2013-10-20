@@ -34,7 +34,6 @@
 #define DBG                     LOG_DEBUG     /* syslog 7 motion 8 */
 #define ALL                     LOG_ALL       /* syslog 8 motion 9 */
 #define LEVEL_DEFAULT           NTC           /* syslog 5 motion 6 default */
-#define SHOW_LEVEL_VALUE(x)     (x+1)
 
 /* Log types */
 #define TYPE_CORE               1             /* Core logs         */
@@ -47,7 +46,6 @@
 #define TYPE_VIDEO              8             /* V4L1/2 Bktr logs  */
 #define TYPE_ALL                9             /* All type logs     */
 #define TYPE_DEFAULT            TYPE_ALL      /* Default type      */
-#define TYPE_DEFAULT_STR        "ALL"         /* Default name logs */
 
 #define MOTION_LOG(x, y, z, format, args...)  motion_log(x, y, z, format, __FUNCTION__, ##args)
 

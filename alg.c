@@ -9,11 +9,6 @@
 #include "motion.h"
 #include "alg.h"
 
-#ifdef __MMX__
-#define HAVE_MMX
-#include "mmx.h"
-#endif
-
 #define MAX2(x, y) ((x) > (y) ? (x) : (y))
 #define MAX3(x, y, z) ((x) > (y) ? ((x) > (z) ? (x) : (z)) : ((y) > (z) ? (y) : (z)))
 
@@ -21,33 +16,99 @@
  * alg_locate_center_size 
  *      Locates the center and size of the movement. 
  */
-void alg_locate_center_size(struct images *imgs, int width, int height, struct coord *cent)
+void alg_locate_center_size(struct images *imgs, int width, int height, struct coord *cent, int tot_labels)
 {
     unsigned char *out = imgs->out;
     int *labels = imgs->labels;
-    int x, y, centc = 0, xdist = 0, ydist = 0;
+    int x, y, l, centc = 0, xdist = 0, ydist = 0;
+    struct label_center *label_coord = imgs->labels_all;
 
-    cent->x = 0;
-    cent->y = 0;
-    cent->maxx = 0;
-    cent->maxy = 0;
-    cent->minx = width;
-    cent->miny = height;
+    /* If Labeling enabled - locate center of all labels. */
+    if (tot_labels) {
 
-    /* If Labeling enabled - locate center of largest labelgroup. */
-    if (imgs->labelsize_max) {
-        /* Locate largest labelgroup */
+        for (x = 0; x < tot_labels; x++) {
+            label_coord[x].x = 0;
+            label_coord[x].y = 0;
+            label_coord[x].c = 0;
+            label_coord[x].minx = width;
+            label_coord[x].maxx = 0;
+            label_coord[x].miny = height;
+            label_coord[x].maxy = 0;
+            label_coord[x].is_sub_box = 0;
+        }
+
         for (y = 0; y < height; y++) {
             for (x = 0; x < width; x++) {
-                if (*(labels++) & 32768) {
-                    cent->x += x;
-                    cent->y += y;
-                    centc++;
+                /* Check for valid label */
+                if (*labels & 32768) {
+                    /* Find the label number */
+                    int current_label = (*labels ^ 32768);
+
+                    label_coord[current_label].x += x;
+                    label_coord[current_label].y += y;
+                    label_coord[current_label].c++;
+
+                    if (label_coord[current_label].minx > x)
+                        label_coord[current_label].minx = x;
+                    if (label_coord[current_label].maxx < x)
+                        label_coord[current_label].maxx = x;
+                    if (label_coord[current_label].miny > y)
+                        label_coord[current_label].miny = y;
+                    if (label_coord[current_label].maxy < y)
+                        label_coord[current_label].maxy = y;
                 }
+                labels++;
             }
         }
 
+        for(l = 0; l < tot_labels; ++l) {
+            /* Calculate center of all labels */
+            if(label_coord[l].c) {
+                label_coord[l].x = label_coord[l].x / label_coord[l].c;
+                label_coord[l].y = label_coord[l].y / label_coord[l].c;
+            }
+
+            /* Merge overlapping boxes */
+            for(x = 0; x < tot_labels; ++x) {
+                if(label_coord[x].is_sub_box || x == l)
+                    continue;
+
+                if(MAX(label_coord[l].minx, label_coord[x].minx) < MIN(label_coord[l].maxx, label_coord[x].maxx) &&
+                    MAX(label_coord[l].miny, label_coord[x].miny) < MIN(label_coord[l].maxy, label_coord[x].maxy)) 
+                    {
+                        label_coord[x].minx = MIN(label_coord[l].minx, label_coord[x].minx);
+                        label_coord[x].maxx = MAX(label_coord[l].maxx, label_coord[x].maxx);
+                        label_coord[x].miny = MIN(label_coord[l].miny, label_coord[x].miny);
+                        label_coord[x].maxy = MAX(label_coord[l].maxy, label_coord[x].maxy);
+
+                        label_coord[l].is_sub_box = 1;
+                        continue;
+                    }
+            }
+        }
+        /* Set cent to largest label,
+         * for box drawing / track moving / 3x3 detection / lightswitch ...
+         */
+        if(label_coord[imgs->largest_label].c) {
+            cent->x = label_coord[imgs->largest_label].x;
+            cent->y = label_coord[imgs->largest_label].y;
+            cent->maxx = label_coord[imgs->largest_label].maxx;
+            cent->maxy = label_coord[imgs->largest_label].maxy;
+            cent->minx = label_coord[imgs->largest_label].minx;
+            cent->miny = label_coord[imgs->largest_label].miny;
+            cent->width = label_coord[imgs->largest_label].maxx - label_coord[imgs->largest_label].minx;
+            cent->height = label_coord[imgs->largest_label].maxy - label_coord[imgs->largest_label].miny;
+        }
+        /* No edge or head fixing*/
+        return;
     } else {
+        cent->x = 0;
+        cent->y = 0;
+        cent->maxx = 0;
+        cent->maxy = 0;
+        cent->minx = width;
+        cent->miny = height;
+
         /* Locate movement */
         for (y = 0; y < height; y++) {
             for (x = 0; x < width; x++) {
@@ -58,42 +119,19 @@ void alg_locate_center_size(struct images *imgs, int width, int height, struct c
                 }
             }
         }
-
-    }
-
-    if (centc) {
-        cent->x = cent->x / centc;
-        cent->y = cent->y / centc;
-    }
-    
-    /* Now we find the size of the Motion. */
-
-    /* First reset pointers back to initial value. */
-    centc = 0;
-    labels = imgs->labels;
-    out = imgs->out;
-
-    /* If Labeling then we find the area around largest labelgroup instead. */
-    if (imgs->labelsize_max) {
-        for (y = 0; y < height; y++) {
-            for (x = 0; x < width; x++) {
-                if (*(labels++) & 32768) {
-                    if (x > cent->x)
-                        xdist += x - cent->x;
-                    else if (x < cent->x)
-                        xdist += cent->x - x;
-
-                    if (y > cent->y)
-                        ydist += y - cent->y;
-                    else if (y < cent->y)
-                        ydist += cent->y - y;
-
-                    centc++;
-                }
-            }    
+        if (centc) {
+            cent->x = cent->x / centc;
+            cent->y = cent->y / centc;
         }
 
-    } else {
+        
+        /* Now we find the size of the Motion. */
+
+        /* First reset pointers back to initial value. */
+        centc = 0;
+        out = imgs->out;
+
+
         for (y = 0; y < height; y++) {
             for (x = 0; x < width; x++) {
                 if (*(out++)) {
@@ -111,19 +149,18 @@ void alg_locate_center_size(struct images *imgs, int width, int height, struct c
                 }
             }    
         }
-
-    }
-    
-    if (centc) {
-        cent->minx = cent->x - xdist / centc * 2;
-        cent->maxx = cent->x + xdist / centc * 2;
-        /* 
-         * Make the box a little bigger in y direction to make sure the
-         * heads fit in so we multiply by 3 instead of 2 which seems to
-         * to work well in practical. 
-         */
-        cent->miny = cent->y - ydist / centc * 3;
-        cent->maxy = cent->y + ydist / centc * 2;
+        
+        if (centc) {
+            cent->minx = cent->x - xdist / centc * 2;
+            cent->maxx = cent->x + xdist / centc * 2;
+            /* 
+             * Make the box a little bigger in y direction to make sure the
+             * heads fit in so we multiply by 3 instead of 2 which seems to
+             * to work well in practical. 
+             */
+            cent->miny = cent->y - ydist / centc * 3;
+            cent->maxy = cent->y + ydist / centc * 2;
+        }
     }
 
     if (cent->maxx > width - 1)
@@ -162,6 +199,13 @@ void alg_locate_center_size(struct images *imgs, int width, int height, struct c
      */
     cent->y = (cent->miny + cent->maxy) / 2;
     
+    /* Set as first label, so drawing box/cross will work */
+    imgs->labels_all[0].x = cent->x;
+    imgs->labels_all[0].y = cent->y;
+    imgs->labels_all[0].minx = cent->minx;
+    imgs->labels_all[0].miny = cent->miny;
+    imgs->labels_all[0].maxx = cent->maxx;
+    imgs->labels_all[0].maxy = cent->maxy;
 }
 
 
@@ -170,10 +214,14 @@ void alg_locate_center_size(struct images *imgs, int width, int height, struct c
  *      Draws a box around the movement. 
  */
 void alg_draw_location(struct coord *cent, struct images *imgs, int width, unsigned char *new,
-                       int style, int mode, int process_thisframe)
+                       int style, int mode, int process_thisframe, int tot_labels)
 {
     unsigned char *out = imgs->out;
     int x, y;
+
+    /* If label is not used, draw cent/coord stored in first position */
+    if (!tot_labels)
+        tot_labels = 1;
 
     out = imgs->out;
 
@@ -199,36 +247,54 @@ void alg_draw_location(struct coord *cent, struct images *imgs, int width, unsig
         }
     }
     if (style == LOCATE_BOX) { /* Draw a box on normal images. */
-        int width_miny = width * cent->miny;
-        int width_maxy = width * cent->maxy;
+        int l;
+        struct label_center *current_label = imgs->labels_all;
 
-        for (x = cent->minx; x <= cent->maxx; x++) {
-            int width_miny_x = x + width_miny;
-            int width_maxy_x = x + width_maxy;
+        for(l = 0; l < tot_labels; l++) {
+            if(current_label->is_sub_box) {
+                current_label++;
+                continue;
+            }
+            int width_miny = width * current_label->miny;
+            int width_maxy = width * current_label->maxy;
 
-            new[width_miny_x] =~new[width_miny_x];
-            new[width_maxy_x] =~new[width_maxy_x];
-        }
+            for (x = current_label->minx; x <= current_label->maxx; x++) {
+                int width_miny_x = x + width_miny;
+                int width_maxy_x = x + width_maxy;
 
-        for (y = cent->miny; y <= cent->maxy; y++) {
-            int width_minx_y = cent->minx + y * width; 
-            int width_maxx_y = cent->maxx + y * width;
+                new[width_miny_x] =~new[width_miny_x];
+                new[width_maxy_x] =~new[width_maxy_x];
+            }
 
-            new[width_minx_y] =~new[width_minx_y];
-            new[width_maxx_y] =~new[width_maxx_y];
+            for (y = current_label->miny; y <= current_label->maxy; y++) {
+                int width_minx_y = current_label->minx + y * width; 
+                int width_maxx_y = current_label->maxx + y * width;
+
+                new[width_minx_y] =~new[width_minx_y];
+                new[width_maxx_y] =~new[width_maxx_y];
+            }
+            current_label++;
         }
     } else if (style == LOCATE_CROSS) { /* Draw a cross on normal images. */
-        int centy = cent->y * width;
+        /* Draw cross on each label */
+        int l;
+        for(l = 0; l < tot_labels; l++) {
+            int centxx = imgs->labels_all[l].x;
+            int centyy = imgs->labels_all[l].y;
+            int centy = centyy * width;
 
-        for (x = cent->x - 10;  x <= cent->x + 10; x++) {
-            new[centy + x] =~new[centy + x];
-            out[centy + x] =~out[centy + x];
+            for (x = centxx - 10;  x <= centxx + 10; x++) {
+                int tmp = centy + x;
+                new[tmp] =~new[tmp];
+                out[tmp] =~out[tmp];
+            }
+
+            for (y = centyy - 10; y <= centyy + 10; y++) {
+                int tmp = centxx + y * width;
+                new[tmp] =~new[tmp];
+                out[tmp] =~out[tmp];
+            }
         }
-
-        for (y = cent->y - 10; y <= cent->y + 10; y++) {
-            new[cent->x + y * width] =~new[cent->x + y * width];
-            out[cent->x + y * width] =~out[cent->x + y * width];
-        }       
     }
 }
 
@@ -238,17 +304,20 @@ void alg_draw_location(struct coord *cent, struct images *imgs, int width, unsig
  *          Draws a RED box around the movement.
  */
 void alg_draw_red_location(struct coord *cent, struct images *imgs, int width, unsigned char *new,
-                           int style, int mode, int process_thisframe)
+                           int style, int mode, int process_thisframe, int tot_labels)
 {
     unsigned char *out = imgs->out;
     unsigned char *new_u, *new_v;
     int x, y, v, cwidth, cblock;
 
+    /* If label is not used, draw cent/coord stored in first position */
+    if (!tot_labels)
+        tot_labels = 1;
+
     cwidth = width / 2;
     cblock = imgs->motionsize / 4;
     x = imgs->motionsize;
     v = x + cblock;
-    out = imgs->out;
     new_u = new + x;
     new_v = new + v;
 
@@ -275,73 +344,90 @@ void alg_draw_red_location(struct coord *cent, struct images *imgs, int width, u
     }
 
     if (style == LOCATE_REDBOX) { /* Draw a red box on normal images. */
-        int width_miny = width * cent->miny;
-        int width_maxy = width * cent->maxy;
-        int cwidth_miny = cwidth * (cent->miny / 2);
-        int cwidth_maxy = cwidth * (cent->maxy / 2);
-        
-        for (x = cent->minx + 2; x <= cent->maxx - 2; x += 2) {
-            int width_miny_x = x + width_miny;
-            int width_maxy_x = x + width_maxy;
-            int cwidth_miny_x = x / 2 + cwidth_miny;
-            int cwidth_maxy_x = x / 2 + cwidth_maxy;
+        int l;
+        struct label_center *current_label = imgs->labels_all;
 
-            new_u[cwidth_miny_x] = 128;
-            new_u[cwidth_maxy_x] = 128;
-            new_v[cwidth_miny_x] = 255;
-            new_v[cwidth_maxy_x] = 255;
+        for(l = 0; l < tot_labels; l++) {
+            if(current_label->is_sub_box) {
+                current_label++;
+                continue;
+            }
+            int width_miny = width * current_label->miny;
+            int width_maxy = width * current_label->maxy;
+            int cwidth_miny = cwidth * (current_label->miny / 2);
+            int cwidth_maxy = cwidth * (current_label->maxy / 2);
+            
+            for (x = current_label->minx + 2; x <= current_label->maxx - 2; x += 2) {
+                int width_miny_x = x + width_miny;
+                int width_maxy_x = x + width_maxy;
+                int cwidth_miny_x = x / 2 + cwidth_miny;
+                int cwidth_maxy_x = x / 2 + cwidth_maxy;
 
-            new[width_miny_x] = 128;
-            new[width_maxy_x] = 128;
+                new_u[cwidth_miny_x] = 128;
+                new_u[cwidth_maxy_x] = 128;
+                new_v[cwidth_miny_x] = 255;
+                new_v[cwidth_maxy_x] = 255;
 
-            new[width_miny_x + 1] = 128;
-            new[width_maxy_x + 1] = 128;
+                new[width_miny_x] = 128;
+                new[width_maxy_x] = 128;
 
-            new[width_miny_x + width] = 128;
-            new[width_maxy_x + width] = 128;
+                new[width_miny_x + 1] = 128;
+                new[width_maxy_x + 1] = 128;
 
-            new[width_miny_x + 1 + width] = 128;
-            new[width_maxy_x + 1 + width] = 128;
-        }
+                new[width_miny_x + width] = 128;
+                new[width_maxy_x + width] = 128;
 
-        for (y = cent->miny; y <= cent->maxy; y += 2) {
-            int width_minx_y = cent->minx + y * width; 
-            int width_maxx_y = cent->maxx + y * width;
-            int cwidth_minx_y = (cent->minx / 2) + (y / 2) * cwidth; 
-            int cwidth_maxx_y = (cent->maxx / 2) + (y / 2) * cwidth;
+                new[width_miny_x + 1 + width] = 128;
+                new[width_maxy_x + 1 + width] = 128;
+            }
 
-            new_u[cwidth_minx_y] = 128;
-            new_u[cwidth_maxx_y] = 128;
-            new_v[cwidth_minx_y] = 255;
-            new_v[cwidth_maxx_y] = 255;
+            for (y = current_label->miny; y <= current_label->maxy; y += 2) {
+                int width_minx_y = current_label->minx + y * width; 
+                int width_maxx_y = current_label->maxx + y * width;
+                int cwidth_minx_y = (current_label->minx / 2) + (y / 2) * cwidth; 
+                int cwidth_maxx_y = (current_label->maxx / 2) + (y / 2) * cwidth;
 
-            new[width_minx_y] = 128;
-            new[width_maxx_y] = 128;
+                new_u[cwidth_minx_y] = 128;
+                new_u[cwidth_maxx_y] = 128;
+                new_v[cwidth_minx_y] = 255;
+                new_v[cwidth_maxx_y] = 255;
 
-            new[width_minx_y + width] = 128;
-            new[width_maxx_y + width] = 128;
+                new[width_minx_y] = 128;
+                new[width_maxx_y] = 128;
 
-            new[width_minx_y + 1] = 128;
-            new[width_maxx_y + 1] = 128;
+                new[width_minx_y + width] = 128;
+                new[width_maxx_y + width] = 128;
 
-            new[width_minx_y + width + 1] = 128;
-            new[width_maxx_y + width + 1] = 128;
+                new[width_minx_y + 1] = 128;
+                new[width_maxx_y + 1] = 128;
+
+                new[width_minx_y + width + 1] = 128;
+                new[width_maxx_y + width + 1] = 128;
+            }
+            current_label++;
         }
     } else if (style == LOCATE_REDCROSS) { /* Draw a red cross on normal images. */
-        int cwidth_maxy = cwidth * (cent->y / 2);
-        
-        for (x = cent->x - 10; x <= cent->x + 10; x += 2) {
-            int cwidth_maxy_x = x / 2 + cwidth_maxy;
 
-            new_u[cwidth_maxy_x] = 128;
-            new_v[cwidth_maxy_x] = 255;
-        }
+        int l;
+        for(l = 0; l < tot_labels; l++) {
 
-        for (y = cent->y - 10; y <= cent->y + 10; y += 2) {
-            int cwidth_minx_y = (cent->x / 2) + (y / 2) * cwidth; 
-            
-            new_u[cwidth_minx_y] = 128;
-            new_v[cwidth_minx_y] = 255;
+            int centxx = imgs->labels_all[l].x;
+            int centyy = imgs->labels_all[l].y;
+            int cwidth_maxy = cwidth * (centyy / 2);
+
+            for (x = centxx - 10; x <= centxx + 10; x += 2) {
+                int cwidth_maxy_x = x / 2 + cwidth_maxy;
+
+                new_u[cwidth_maxy_x] = 128;
+                new_v[cwidth_maxy_x] = 255;
+            }
+
+            for (y = centyy - 10; y <= centyy + 10; y += 2) {
+                int cwidth_minx_y = (centxx / 2) + (y / 2) * cwidth;
+
+                new_u[cwidth_minx_y] = 128;
+                new_v[cwidth_minx_y] = 255;
+            }
         }
     }
 }
@@ -525,13 +611,12 @@ static int alg_labeling(struct context *cnt)
     int width = imgs->width;
     int height = imgs->height;
     int labelsize = 0;
-    int current_label = 2;
+    int mark_as_label = 2; /* 0 = no label, 1 = no label and no motion, > 1 = label id*/
+    int *tot_labels = &cnt->current_image->total_labels;
+    int diffs = 0;
 
-    cnt->current_image->total_labels = 0;
+    *tot_labels = 0;
     imgs->labelsize_max = 0;
-    /* ALL labels above threshold are counted as labelgroup. */
-    imgs->labelgroup_max = 0;
-    imgs->labels_above = 0;
 
     /* Init: 0 means no label set / not checked. */
     memset(labels, 0, width * height * sizeof(labels));
@@ -549,38 +634,36 @@ static int alg_labeling(struct context *cnt)
             if (labels[pixelpos] > 0)
                 continue;
 
-            labelsize = iflood(ix, iy, width, height, out, labels, current_label, 0);
+            labelsize = iflood(ix, iy, width, height, out, labels, mark_as_label, 0);
             
-            if (labelsize > 0) {
-                MOTION_LOG(DBG, TYPE_ALL, NO_ERRNO, "%s: Label: %i (%i) Size: %i (%i,%i)", 
-                            current_label, cnt->current_image->total_labels, 
-                           labelsize, ix, iy);
+            if (labelsize > cnt->threshold) {
+                /* Only care about MAX_LABELS, NB: this is MAX_LABELS first, not MAX_LABELS best. */
+                /* but with large enough number, probalby doesn't matter */
+                if (*tot_labels == MAX_LABELS)
+                    goto SKIP_REM_LABELS;
 
                 /* Label above threshold? Mark it again (add 32768 to labelnumber). */
-                if (labelsize > cnt->threshold) {
-                    labelsize = iflood(ix, iy, width, height, out, labels, current_label + 32768, current_label);
-                    imgs->labelgroup_max += labelsize;
-                    imgs->labels_above++;
-                }
-                
+                labelsize = iflood(ix, iy, width, height, out, labels, *tot_labels + 32768, mark_as_label);
+                diffs += labelsize;
+
                 if (imgs->labelsize_max < labelsize) {
                     imgs->labelsize_max = labelsize;
-                    imgs->largest_label = current_label;
+                    imgs->largest_label = *tot_labels;
                 }
-                
-                cnt->current_image->total_labels++;
-                current_label++;
+                (*tot_labels)++;
             }
+            mark_as_label++;
         }
         pixelpos++; /* Compensate for ix < width - 1 */
     }
 
-    MOTION_LOG(DBG, TYPE_ALL, NO_ERRNO, "%s: %i Labels found. Largest connected Area: %i Pixel(s). "
-               "Largest Label: %i", imgs->largest_label, imgs->labelsize_max, 
-               cnt->current_image->total_labels);
+    SKIP_REM_LABELS:
+
+    MOTION_LOG(DBG, TYPE_ALL, NO_ERRNO, "%s: %i Valid labels found. Largest area: %i Pixel(s). "
+               "Largest Label: %i", *tot_labels, imgs->labelsize_max, imgs->largest_label);
     
     /* Return group of significant labels. */
-    return imgs->labelgroup_max;
+    return diffs;
 }
 
 /** 
@@ -860,7 +943,8 @@ int alg_despeckle(struct context *cnt, int olddiffs)
             break;
         /* No further despeckle after labeling! */
         case 'l':
-            diffs = alg_labeling(cnt);
+            if(diffs > cnt->threshold)
+                diffs = alg_labeling(cnt);
             i = len;
             done = 2;
             break;
@@ -868,13 +952,8 @@ int alg_despeckle(struct context *cnt, int olddiffs)
     }
 
     /* If conf.despeckle_filter contains any valid action EeDdl */
-    if (done) {
-        if (done != 2) 
-            cnt->imgs.labelsize_max = 0; // Disable Labeling
+    if (done)
         return diffs;
-    } else {
-        cnt->imgs.labelsize_max = 0; // Disable Labeling
-    }    
     
     return olddiffs;
 }
@@ -937,227 +1016,10 @@ int alg_diff_standard(struct context *cnt, unsigned char *new)
     unsigned char *mask = imgs->mask;
     unsigned char *smartmask_final = imgs->smartmask_final;
     int *smartmask_buffer = imgs->smartmask_buffer;
-#ifdef HAVE_MMX
-    mmx_t mmtemp; /* Used for transferring to/from memory. */
-    int unload;   /* Counter for unloading diff counts. */
-#endif
 
     i = imgs->motionsize;
     memset(out + i, 128, i / 2); /* Motion pictures are now b/w i.o. green */
-    /* 
-     * Keeping this memset in the MMX case when zeroes are necessarily 
-     * written anyway seems to be beneficial in terms of speed. Perhaps a
-     * cache thing?
-     */
     memset(out, 0, i);
-
-#ifdef HAVE_MMX
-    /* 
-     * NOTE: The Pentium has two instruction pipes: U and V. I have grouped MMX
-     * instructions in pairs according to how I think they will be scheduled in 
-     * the U and V pipes. Due to pairing constraints, the V pipe will sometimes
-     * be empty (for example, memory access always goes into the U pipe).
-     *
-     * The following MMX registers are kept throughout the loop:
-     * mm5 - 8 separate diff counters (unloaded periodically)
-     * mm6 - mask: 00ff 00ff 00ff 00ff
-     * mm7 - noise level as 8 packed bytes
-     *
-     * -- Per Jonsson
-     */
-
-    /* 
-     * To avoid a div, we work with differences multiplied by 255 in the
-     * default case and *mask otherwise. Thus, the limit to compare with is
-     * 255 * (noise + 1) - 1).
-     */
-    mmtemp.uw[0] = mmtemp.uw[1] = mmtemp.uw[2] = mmtemp.uw[3] =
-                   (unsigned short)(noise * 255 + 254);
-    
-    /* 
-     * Reset mm5 to zero, set the mm6 mask, and store the multiplied noise
-     * level as four words in mm7.
-     */
-    movq_m2r(mmtemp, mm7);             /* U */
-    pcmpeqb_r2r(mm6, mm6);             /* V */
-    
-    pxor_r2r(mm5, mm5);                /* U */
-    psrlw_i2r(8, mm6);                 /* V */
-
-    /* 
-     * We must unload mm5 every 255th round, because the diffs accumulate
-     * in each packed byte, which can hold at most 255 diffs before it
-     * gets saturated.
-     */
-    unload = 255;
-    
-    for (; i > 7; i -= 8) {
-        /* Calculate abs(*ref-*new) for 8 pixels in parallel. */
-        movq_m2r(*ref, mm0);           /* U: mm0 = r7 r6 r5 r4 r3 r2 r1 r0 */
-        pxor_r2r(mm4, mm4);            /* V: mm4 = 0 */
-
-        movq_m2r(*new, mm1);           /* U: mm1 = n7 n6 n5 n4 n3 n2 n1 n0 */
-        movq_r2r(mm0, mm2);            /* V: mm2 = r7 r6 r5 r4 r3 r2 r1 r0 */
-
-        /* These subtractions are saturated, i.e. won't go below 0. */
-        psubusb_r2r(mm1, mm0);         /* U: mm0 = (r7-n7) ... (r0-n0) */
-        psubusb_r2r(mm2, mm1);         /* V: mm1 = (n7-r7) ... (n0-r0) */
-        
-        /* Each byte dX in mm0 is abs(nX-rX). */
-        por_r2r(mm1, mm0);             /* U: mm0 = d7 d6 d5 d4 d3 d2 d1 d0 */
-
-        /* Expand the absolute differences to words in mm0 and mm1. */
-        movq_r2r(mm0, mm1);            /* U: mm1 = d7 d6 d5 d4 d3 d2 d1 d0 */
-        punpcklbw_r2r(mm4, mm0);       /* V: mm0 =    d3    d2    d1    d0 */
-        
-        punpckhbw_r2r(mm4, mm1);       /* U: mm1 =    d7    d6    d5    d4 */
-
-        if (mask) {
-            /*
-             * Load and expand 8 mask bytes to words in mm2 and mm3. Then
-             * multiply by mm0 and mm1, respectively.
-             */
-            movq_m2r(*mask, mm2);      /* U: mm2 = m7 m6 m5 m4 m3 m2 m1 m0 */
-
-            movq_r2r(mm2, mm3);        /* U: mm3 = m7 m6 m5 m4 m3 m2 m1 m0 */
-            punpcklbw_r2r(mm4, mm2);   /* v: mm2 =    m3    m2    m1    m0 */
-            
-            punpckhbw_r2r(mm4, mm3);   /* U: mm3 =    m7    m6    m5    m4 */
-            pmullw_r2r(mm2, mm0);      /* V: mm0 = (d3*m3) ... (d0*m0) */
-            
-            pmullw_r2r(mm3, mm1);      /* U: mm1 = (d7*m7) ... (d4*m4) */
-
-            mask += 8;
-        } else {
-            /* 
-             * Not using mask - multiply the absolute differences by 255. We
-             * do this by left-shifting 8 places and then subtracting dX.
-             */
-            movq_r2r(mm0, mm2);        /* U: mm2 =    d3    d2    d1    d0 */
-            psllw_i2r(8, mm0);         /* V: mm2 = (256*d3) ... (256*d0) */ 
-
-            movq_r2r(mm1, mm3);        /* U: mm3 =    d7    d6    d5    d4 */
-            psllw_i2r(8, mm1);         /* V: mm3 = (256*d7) ... (256*d4) */
-
-            psubusw_r2r(mm2, mm0);     /* U */
-            psubusw_r2r(mm3, mm1);     /* V */ 
-        }
-
-        /* 
-         * Next, compare the multiplied absolute differences with the multiplied
-         * noise level (repeated as 4 words in mm7), resulting in a "motion flag"
-         * for each pixel.
-         *
-         * Since pcmpgtw performs signed comparisons, we have to subtract noise,
-         * test for equality to 0 and then invert the result.
-         *
-         * Note that it is safe to generate the "motion flags" before the 
-         * smartmask code, as all that can happen is that individual flags get
-         * reset to 0 because of the smartmask.
-         */
-        psubusw_r2r(mm7, mm0);         /* U: subtract by (multiplied) noise */
-        psubusw_r2r(mm7, mm1);         /* V */
-
-        pcmpeqw_r2r(mm4, mm0);         /* U: test for equality with 0 */
-        pcmpeqw_r2r(mm4, mm1);         /* V */
-
-        pand_r2r(mm6, mm0);            /* U: convert 0xffff -> 0x00ff */
-        pand_r2r(mm6, mm1);            /* V */
-
-        pxor_r2r(mm6, mm0);            /* U: invert the result */
-        pxor_r2r(mm6, mm1);            /* V */
-
-        /* Each fX is the "motion flag" = 0 for no motion, 0xff for motion. */
-        packuswb_r2r(mm1, mm0);        /* U: mm0 = f7 f6 f5 f4 f3 f2 f1 f0 */
-
-        if (smartmask_speed) {
-            /*
-             * Apply the smartmask. Basically, if *smartmask_final is 0, the
-             * corresponding "motion flag" in mm0 will be reset.
-             */
-            movq_m2r(*smartmask_final, mm3); /* U: mm3 = s7 s6 s5 s4 s3 s2 s1 s0 */
-
-            /* 
-             * ...but move the "motion flags" to memory before, in order to
-             * increment *smartmask_buffer properly below.
-             */
-            movq_r2m(mm0, mmtemp);           /* U */
-            pcmpeqb_r2r(mm4, mm3);           /* V: mm3 = 0xff where sX==0 */
-
-            /* AND negates the target before anding. */
-            pandn_r2r(mm0, mm3);             /* U: mm3 = 0xff where dX>noise && sX>0 */
-
-            movq_r2r(mm3, mm0);              /* U */
-
-            /* Add to *smartmask_buffer. This is probably the fastest way to do it. */
-            if (cnt->event_nr != cnt->prev_event) {
-                if (mmtemp.ub[0]) smartmask_buffer[0] += SMARTMASK_SENSITIVITY_INCR;
-                if (mmtemp.ub[1]) smartmask_buffer[1] += SMARTMASK_SENSITIVITY_INCR;
-                if (mmtemp.ub[2]) smartmask_buffer[2] += SMARTMASK_SENSITIVITY_INCR;
-                if (mmtemp.ub[3]) smartmask_buffer[3] += SMARTMASK_SENSITIVITY_INCR;
-                if (mmtemp.ub[4]) smartmask_buffer[4] += SMARTMASK_SENSITIVITY_INCR;
-                if (mmtemp.ub[5]) smartmask_buffer[5] += SMARTMASK_SENSITIVITY_INCR;
-                if (mmtemp.ub[6]) smartmask_buffer[6] += SMARTMASK_SENSITIVITY_INCR;
-                if (mmtemp.ub[7]) smartmask_buffer[7] += SMARTMASK_SENSITIVITY_INCR;
-            }
-
-            smartmask_buffer += 8;
-            smartmask_final += 8;
-        }
-
-        movq_m2r(*new, mm2);           /* U: mm1 = n7 n6 n5 n4 n3 n2 n1 n0 */
-
-        /*
-         * Cancel out pixels in *new according to the "motion flags" in mm0.
-         * Each NX is either 0 or nX as from *new.
-         */
-        pand_r2r(mm0, mm2);            /* U: mm1 = N7 N6 N5 N4 N3 N2 N1 N0 */
-        psubb_r2r(mm0, mm4);           /* V: mm4 = 0x01 where dX>noise */
-
-        /*
-         * mm5 holds 8 separate counts - each one is increased according to
-         * the contents of mm4 (where each byte is either 0x00 or 0x01). 
-         */
-        movq_r2m(mm2, *out);           /* U: this will stall */
-        paddusb_r2r(mm4, mm5);         /* V: add counts to mm5 */
-        
-        /*
-         * Every 255th turn, we need to unload mm5 into the diffs variable,
-         * because otherwise the packed bytes will get saturated.
-         */
-        if (--unload == 0) {
-            /* Unload mm5 to memory and reset it. */
-            movq_r2m(mm5, mmtemp);     /* U */
-            pxor_r2r(mm5, mm5);        /* V: mm5 = 0 */
-
-            diffs += mmtemp.ub[0] + mmtemp.ub[1] + mmtemp.ub[2] + mmtemp.ub[3] + 
-                     mmtemp.ub[4] + mmtemp.ub[5] + mmtemp.ub[6] + mmtemp.ub[7];
-            unload = 255;
-        }
-
-        out += 8;
-        ref += 8;
-        new += 8;
-    }
-
-    /* 
-     * Check if there are diffs left in mm5 that need to be copied to the
-     * diffs variable. 
-     */
-    if (unload < 255) {
-        movq_r2m(mm5, mmtemp);
-        diffs += mmtemp.ub[0] + mmtemp.ub[1] + mmtemp.ub[2] + mmtemp.ub[3] + 
-                 mmtemp.ub[4] + mmtemp.ub[5] + mmtemp.ub[6] + mmtemp.ub[7];
-    }
-
-    emms();
-
-#endif
-    /*
-     * Note that the non-MMX code is present even if the MMX code is present.
-     * This is necessary if the resolution is not a multiple of 8, in which
-     * case the non-MMX code needs to take care of the remaining pixels.
-     */
 
     for (; i > 0; i--) {
         register unsigned char curdiff = (int)(abs(*ref - *new)); /* Using a temp variable is 12% faster. */

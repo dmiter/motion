@@ -280,6 +280,23 @@ struct image_data {
 int draw_text(unsigned char *image, unsigned int startx, unsigned int starty, unsigned int width, const char *text, unsigned int factor);
 int initialize_chars(void);
 
+
+#define MAX_LABELS   50
+
+/*  Stores information about each label. 
+ *  TODO: use alg.h coord instead ...
+ */
+struct label_center{
+    int x;
+    int y;
+    int c;
+    int minx;
+    int maxx;
+    int miny;
+    int maxy;
+    int is_sub_box;
+};
+
 struct images {
     struct image_data *image_ring;    /* The base address of the image ring buffer */
     int image_ring_size;
@@ -296,18 +313,17 @@ struct images {
     unsigned char *smartmask_final;
     unsigned char *common_buffer;
     int *smartmask_buffer;
-    int *labels;
-    int *labelsize;
     int width;
     int height;
     int type;
     int picture_type;                 /* Output picture type IMAGE_JPEG, IMAGE_PPM */        
     int size;
     int motionsize;
-    int labelgroup_max;
-    int labels_above;
-    int labelsize_max;
-    int largest_label;
+
+    int *labels;                     /* Hold label information */
+    int labelsize_max;               /* Size of largest label */
+    int largest_label;               /* Index of largest label */
+    struct label_center labels_all[MAX_LABELS]; /* SHOULD BE DYNAMIC !? */
 };
 
 /* Contains data for image rotation, see rotate.c. */
@@ -369,6 +385,9 @@ struct context {
     volatile unsigned int restart;     /* Restart the thread when it ends */
     /* Is the motion thread running */
     volatile unsigned int running;
+    /* Is the web control thread running */
+    volatile unsigned int webcontrol_running;
+    volatile unsigned int webcontrol_finish;      /* End the thread */
     volatile int watchdog;
 
     pthread_t thread_id;

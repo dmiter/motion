@@ -301,7 +301,7 @@ static long netcam_check_content_length(char *header)
                        " Content-Length but value %ld", length);
     }
 
-    MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO, "%s: Content-Length %ld", 
+    MOTION_LOG(DBG, TYPE_NETCAM, NO_ERRNO, "%s: Content-Length %ld", 
                length);
 
     return length;
@@ -391,7 +391,7 @@ static int netcam_check_content_type(char *header)
     if (!header_process(header, "Content-type", http_process_type, &content_type))
         return -1;
 
-    MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO, "%s: Content-type %s", 
+    MOTION_LOG(DBG, TYPE_NETCAM, NO_ERRNO, "%s: Content-type %s", 
                content_type);
 
     if (!strcmp(content_type, "image/jpeg")) {
@@ -509,7 +509,7 @@ static int netcam_read_next_header(netcam_context_ptr netcam)
         free(header);
     }
 
-    MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO, "%s: Found image header record"); 
+    MOTION_LOG(DBG, TYPE_NETCAM, NO_ERRNO, "%s: Found image header record"); 
 
     free(header);
     return 0;
@@ -679,7 +679,7 @@ static int netcam_read_first_header(netcam_context_ptr netcam)
                 
             }
         } else if ((ret = (int) netcam_check_content_length(header)) >= 0) {
-            MOTION_LOG(NTC, TYPE_NETCAM, NO_ERRNO, "%s: Content-length present");
+            MOTION_LOG(DBG, TYPE_NETCAM, NO_ERRNO, "%s: Content-length present");
 
             if (ret > 0) {
                 netcam->caps.content_length = 1;     /* Set flag */

@@ -201,17 +201,17 @@ static void image_save_as_preview(struct context *cnt, struct image_data *img)
 
         if (cnt->locate_motion_style == LOCATE_BOX) {
             alg_draw_location(&img->location, &cnt->imgs, cnt->imgs.width, cnt->imgs.preview_image.image,
-                              LOCATE_BOX, LOCATE_NORMAL, cnt->process_thisframe);
+                              LOCATE_BOX, LOCATE_NORMAL, cnt->process_thisframe, cnt->imgs.preview_image.total_labels);
         } else if (cnt->locate_motion_style == LOCATE_REDBOX) {
             alg_draw_red_location(&img->location, &cnt->imgs, cnt->imgs.width, cnt->imgs.preview_image.image,
-                                  LOCATE_REDBOX, LOCATE_NORMAL, cnt->process_thisframe);
+                                  LOCATE_REDBOX, LOCATE_NORMAL, cnt->process_thisframe, cnt->imgs.preview_image.total_labels);
         } else if (cnt->locate_motion_style == LOCATE_CROSS) {
             alg_draw_location(&img->location, &cnt->imgs, cnt->imgs.width, cnt->imgs.preview_image.image,
-                              LOCATE_CROSS, LOCATE_NORMAL, cnt->process_thisframe);
+                              LOCATE_CROSS, LOCATE_NORMAL, cnt->process_thisframe, cnt->imgs.preview_image.total_labels);
         } else if (cnt->locate_motion_style == LOCATE_REDCROSS) {
             alg_draw_red_location(&img->location, &cnt->imgs, cnt->imgs.width, cnt->imgs.preview_image.image,
-                                  LOCATE_REDCROSS, LOCATE_NORMAL, cnt->process_thisframe);
-        }     
+                                  LOCATE_REDCROSS, LOCATE_NORMAL, cnt->process_thisframe,  cnt->imgs.preview_image.total_labels);
+        }
     }
 }
 
@@ -334,6 +334,7 @@ static void sig_handler(int signo)
             while (cnt_list[++i]) {
                 cnt_list[i]->makemovie = 1;
                 cnt_list[i]->finish = 1;
+                cnt_list[i]->webcontrol_finish = 1;
                 /* 
                  * Don't restart thread when it ends, 
                  * all threads restarts if global restart is set 
@@ -410,19 +411,18 @@ static void motion_detected(struct context *cnt, int dev, struct image_data *img
 
     /* Draw location */
     if (cnt->locate_motion_mode == LOCATE_ON) {
-
         if (cnt->locate_motion_style == LOCATE_BOX) {
             alg_draw_location(location, imgs, imgs->width, img->image, LOCATE_BOX,
-                              LOCATE_BOTH, cnt->process_thisframe);
+                              LOCATE_BOTH, cnt->process_thisframe, img->total_labels);
         } else if (cnt->locate_motion_style == LOCATE_REDBOX) {
             alg_draw_red_location(location, imgs, imgs->width, img->image, LOCATE_REDBOX,
-                                  LOCATE_BOTH, cnt->process_thisframe);
+                                  LOCATE_BOTH, cnt->process_thisframe, img->total_labels);
         } else if (cnt->locate_motion_style == LOCATE_CROSS) {
             alg_draw_location(location, imgs, imgs->width, img->image, LOCATE_CROSS, 
-                              LOCATE_BOTH, cnt->process_thisframe);
+                              LOCATE_BOTH, cnt->process_thisframe, img->total_labels);
         } else if (cnt->locate_motion_style == LOCATE_REDCROSS) {
             alg_draw_red_location(location, imgs, imgs->width, img->image, LOCATE_REDCROSS, 
-                                  LOCATE_BOTH, cnt->process_thisframe);
+                                  LOCATE_BOTH, cnt->process_thisframe, img->total_labels);
         }    
     }
 
@@ -723,7 +723,6 @@ static int motion_init(struct context *cnt)
     cnt->imgs.smartmask_final = mymalloc(cnt->imgs.motionsize);
     cnt->imgs.smartmask_buffer = mymalloc(cnt->imgs.motionsize * sizeof(cnt->imgs.smartmask_buffer));
     cnt->imgs.labels = mymalloc(cnt->imgs.motionsize * sizeof(cnt->imgs.labels));
-    cnt->imgs.labelsize = mymalloc((cnt->imgs.motionsize/2+1) * sizeof(cnt->imgs.labelsize));
 
     /* Set output picture type */
     if (!strcmp(cnt->conf.picture_type, "ppm"))
@@ -986,11 +985,6 @@ static void motion_cleanup(struct context *cnt)
         cnt->imgs.labels = NULL;
     }
 
-    if (cnt->imgs.labelsize) {
-        free(cnt->imgs.labelsize);
-        cnt->imgs.labelsize = NULL;
-    }
-
     if (cnt->imgs.smartmask) {
         free(cnt->imgs.smartmask);
         cnt->imgs.smartmask = NULL;
@@ -1102,8 +1096,6 @@ static void *motion_loop(void *arg)
      * is acted upon.
      */
     unsigned long int time_last_frame = 1, time_current_frame;
-
-    cnt->running = 1;
     
     if (motion_init(cnt) < 0) 
         goto err;
@@ -1549,8 +1541,6 @@ static void *motion_loop(void *arg)
                     if (cnt->conf.despeckle_filter && cnt->current_image->diffs > 0) {
                         olddiffs = cnt->current_image->diffs;
                         cnt->current_image->diffs = alg_despeckle(cnt, olddiffs);
-                    } else if (cnt->imgs.labelsize_max) {
-                        cnt->imgs.labelsize_max = 0; /* Disable labeling if enabled */
                     }
 
                 } else if (!cnt->conf.setup_mode) {
@@ -1594,7 +1584,7 @@ static void *motion_loop(void *arg)
              * If we are not noise tuning lets make sure that remote controlled
              * changes of noise_level are used.
              */
-            if (cnt->process_thisframe) {
+            if (cnt->process_thisframe && (!cnt->pause || cnt->conf.setup_mode)) {
                 if (!cnt->conf.noise_tune)
                     cnt->noise = cnt->conf.noise;
 
@@ -1614,7 +1604,7 @@ static void *motion_loop(void *arg)
                  * for adding the locate rectangle 
                  */
                 if (cnt->current_image->diffs > cnt->threshold)
-                    alg_locate_center_size(&cnt->imgs, cnt->imgs.width, cnt->imgs.height, &cnt->current_image->location);
+                    alg_locate_center_size(&cnt->imgs, cnt->imgs.width, cnt->imgs.height, &cnt->current_image->location, cnt->current_image->total_labels);
 
                 /* 
                  * Update reference frame. 
@@ -1660,9 +1650,10 @@ static void *motion_loop(void *arg)
                 overlay_smartmask(cnt, cnt->imgs.out);
 
             /* Largest labels overlay */
-            if (cnt->imgs.largest_label && (cnt->conf.motion_img || cnt->conf.ffmpeg_output_debug || 
-                cnt->conf.setup_mode))
+            if (cnt->current_image->total_labels && (cnt->conf.motion_img || cnt->conf.ffmpeg_output_debug || 
+                cnt->conf.setup_mode)) {
                 overlay_largest_label(cnt, cnt->imgs.out);
+        }
 
             /* Fixed mask overlay */
             if (cnt->imgs.mask && (cnt->conf.motion_img || cnt->conf.ffmpeg_output_debug || 
@@ -2120,6 +2111,22 @@ static void *motion_loop(void *arg)
             else
                 cnt->locate_motion_style = LOCATE_BOX;
 
+            /* Want to change log_level? 
+             * -1 to make syslog compatible
+            */
+            if (cnt_list[0]->conf.log_level-1 != cnt_list[0]->log_level &&
+                cnt_list[0]->conf.log_level-1 < ALL) {
+                    cnt_list[0]->log_level = cnt_list[0]->conf.log_level - 1;
+                    set_log_level(cnt_list[0]->log_level);
+            }
+
+            /* Want to change log_type? */
+            if (cnt_list[0]->conf.log_type != cnt_list[0]->log_type &&
+                cnt_list[0]->conf.log_type != 0) {
+                    cnt_list[0]->log_type = cnt_list[0]->conf.log_type;
+                    set_log_type(cnt_list[0]->log_type);
+            }
+
             /* Sanity check for smart_mask_speed, silly value disables smart mask */
             if (cnt->conf.smart_mask_speed < 0 || cnt->conf.smart_mask_speed > 10)
                 cnt->conf.smart_mask_speed = 0;
@@ -2432,10 +2439,10 @@ static void motion_startup(int daemonize, int argc, char *argv[])
 
     if ((cnt_list[0]->conf.log_level > ALL) ||
         (cnt_list[0]->conf.log_level == 0)) { 
-        cnt_list[0]->conf.log_level = LEVEL_DEFAULT;
-        cnt_list[0]->log_level = cnt_list[0]->conf.log_level;
-        MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, "%s: Using default log level (%s) (%d)", 
-                   get_log_level_str(cnt_list[0]->log_level), SHOW_LEVEL_VALUE(cnt_list[0]->log_level));
+            cnt_list[0]->conf.log_level = LEVEL_DEFAULT + 1; // syslog / motion compatibility
+            cnt_list[0]->log_level = cnt_list[0]->conf.log_level -1; // syslog / motion compatibility
+            MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, "%s: Using default log level (%s) (%d)", 
+                        get_log_level_str(cnt_list[0]->log_level), cnt_list[0]->log_level);
     } else {
         cnt_list[0]->log_level = cnt_list[0]->conf.log_level - 1; // Let's make syslog compatible
     }
@@ -2466,12 +2473,12 @@ static void motion_startup(int daemonize, int argc, char *argv[])
         MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, "%s: Logging to syslog");
     }
 
-    if ((cnt_list[0]->conf.log_type_str == NULL) || 
-        !(cnt_list[0]->log_type = get_log_type(cnt_list[0]->conf.log_type_str))) {
-        cnt_list[0]->log_type = TYPE_DEFAULT;
-        cnt_list[0]->conf.log_type_str = mystrcpy(cnt_list[0]->conf.log_type_str, "ALL");
-        MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, "%s: Using default log type (%s)",  
-                   get_log_type_str(cnt_list[0]->log_type));
+    if (cnt_list[0]->conf.log_type == 0) {
+            cnt_list[0]->log_type = TYPE_DEFAULT;
+            MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, "%s: Using default log type (%s)",  
+                        get_log_type_str(cnt_list[0]->log_type));
+    } else {
+        cnt_list[0]->log_type = cnt_list[0]->conf.log_type;
     }
 
     MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, "%s: Using log type (%s) log level (%s)", 
@@ -2602,11 +2609,22 @@ static void start_motion_thread(struct context *cnt, pthread_attr_t *thread_attr
     /* Give the thread WATCHDOG_TMO to start */
     cnt->watchdog = WATCHDOG_TMO;
 
+    /* Flag it as running outside of the thread, otherwise if the main loop
+     * checked if it is was running before the thread set it to 1, it would
+     * start another thread for this device. */
+    cnt->running = 1;
+
     /* 
      * Create the actual thread. Use 'motion_loop' as the thread
      * function.
      */
-    pthread_create(&cnt->thread_id, thread_attr, &motion_loop, cnt);
+    if (pthread_create(&cnt->thread_id, thread_attr, &motion_loop, cnt)) {
+        /* thread create failed, undo running state */
+        cnt->running = 0;
+        pthread_mutex_lock(&global_lock);
+        threads_running--;
+        pthread_mutex_unlock(&global_lock);
+    }
 }
 
 /**
@@ -2717,8 +2735,21 @@ int main (int argc, char **argv)
          * Create a thread for the control interface if requested. Create it
          * detached and with 'motion_web_control' as the thread function.
          */
-        if (cnt_list[0]->conf.webcontrol_port)
-            pthread_create(&thread_id, &thread_attr, &motion_web_control, cnt_list);
+        if (cnt_list[0]->conf.webcontrol_port) {
+            pthread_mutex_lock(&global_lock);
+            threads_running++;
+            /* set outside the loop to avoid thread set vs main thread check */
+            cnt_list[0]->webcontrol_running = 1;
+            pthread_mutex_unlock(&global_lock);
+            if (pthread_create(&thread_id, &thread_attr, &motion_web_control,
+                cnt_list)) {
+                /* thread create failed, undo running state */
+                pthread_mutex_lock(&global_lock);
+                threads_running--;
+                cnt_list[0]->webcontrol_running = 0;
+                pthread_mutex_unlock(&global_lock);
+            }
+        }
 
         MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, "%s: Waiting for threads to finish, pid: %d", 
                    getpid());
@@ -2740,6 +2771,9 @@ int main (int argc, char **argv)
                 if (cnt_list[i]->running || cnt_list[i]->restart)
                     motion_threads_running++;
             }
+            if (cnt_list[0]->conf.webcontrol_port &&
+                cnt_list[0]->webcontrol_running)
+                motion_threads_running++;
 
             if (((motion_threads_running == 0) && finish) || 
                 ((motion_threads_running == 0) && (threads_running == 0))) {
@@ -2799,7 +2833,7 @@ int main (int argc, char **argv)
 
 
     // Be sure that http control exits fine
-    cnt_list[0]->finish = 1;
+    cnt_list[0]->webcontrol_finish = 1;
     SLEEP(1, 0);
     MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, "%s: Motion terminating");
 

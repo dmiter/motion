@@ -17,31 +17,11 @@ static int log_mode = LOGMODE_SYSLOG;
 static FILE *logfile;
 static unsigned int log_level = LEVEL_DEFAULT;
 static unsigned int log_type = TYPE_DEFAULT;
+static unsigned int log_type_flag = 0;
 
 static const char *log_type_str[] = {NULL, "COR", "STR", "ENC", "NET", "DBL", "EVT", "TRK", "VID", "ALL"};
 static const char *log_level_str[] = {"EMG", "ALR", "CRT", "ERR", "WRN", "NTC", "INF", "DBG", "ALL", NULL};
 
-
-/**
- * get_log_type
- *
- *
- * Returns: index of log type or 0 if not valid type.
- */
-int get_log_type(const char *type)
-{
-    unsigned int i, ret = 0;
-    unsigned int maxtype = sizeof(log_type_str)/sizeof(const char *);
-
-    for (i = 1;i < maxtype; i++) {
-        if (!strncasecmp(type, log_type_str[i], 3)) {
-            ret = i;
-            break;
-        }
-    }
-
-    return ret;
-}
 
 /**
  * get_log_type_str
@@ -51,6 +31,8 @@ int get_log_type(const char *type)
  */
 const char* get_log_type_str(unsigned int type)
 {
+    if (type > 9)
+        return "MSC";
     return log_type_str[type];
 }
 
@@ -61,8 +43,25 @@ const char* get_log_type_str(unsigned int type)
  * Returns: nothing.
  */
 void set_log_type(unsigned int type)
-{
+{  
     log_type = type;
+
+    /* Always show TYPE_ALL log messages */
+    log_type_flag = 1<<9;
+
+    char buffer[8];
+    snprintf(buffer, 8, "%i", type);
+    int i, number, len = strlen(buffer);
+
+    for (i = 0; i < len; i++) {
+        number = buffer[i] - '0';
+        if (number > 8 || number == 0) {
+            log_type = TYPE_ALL;
+            log_type_flag = 0;
+            return;
+        }
+        log_type_flag |= 1<<number;
+        }
     //printf("set log type %d\n", type);
 }
 
@@ -173,7 +172,7 @@ void motion_log(int level, unsigned int type, int errno_flag, const char *fmt, .
         return;
 
     /* Exit if type is not equal to log_type and not TYPE_ALL */
-    if ((log_type != TYPE_ALL) && (type != log_type))
+    if ((log_type != TYPE_ALL) && !(1<<type & log_type_flag))
         return;
 
     //printf("log_type %d, type %d level %d\n", log_type, type, level);

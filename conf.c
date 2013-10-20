@@ -150,7 +150,7 @@ struct config conf_template = {
     pid_file:                       NULL,
     log_file:                       NULL,
     log_level:                      LEVEL_DEFAULT+10,
-    log_type_str:                   NULL,
+    log_type:                       TYPE_DEFAULT,
 };
 
 static struct context **copy_bool(struct context **, const char *, int);
@@ -211,7 +211,7 @@ config_param config_params[] = {
     },
     {
     "log_level",
-    "# Level of log messages [1..9] (EMR, ALR, CRT, ERR, WRN, NTC, ERR, DBG, ALL). (default: 6 / NTC)",
+    "# Level of log messages [1..9] (EMR, ALR, CRT, ERR, WRN, NTC, INF, DBG, ALL). (default: 6 / NTC)",
     1,
     CONF_OFFSET(log_level),
     copy_int,
@@ -219,11 +219,12 @@ config_param config_params[] = {
     },
     {
     "log_type",
-    "# Filter to log messages by type (COR, STR, ENC, NET, DBL, EVT, TRK, VID, ALL). (default: ALL)",
+    "# Filter to log messages by [1..9] (COR, STR, ENC, NET, DBL, EVT, TRK, VID, ALL). (default: 9 / ALL)\n"
+    "# Or any combination e.g. 78 to only show TRK and VID messages",
     1,
-    CONF_OFFSET(log_type_str),
-    copy_string,
-    print_string
+    CONF_OFFSET(log_type),
+    copy_int,
+    print_int
     },
     {
     "videodevice",
@@ -1549,7 +1550,7 @@ static void conf_cmdline(struct context *cnt, int thread)
             break;
         case 'k':
             if (thread == -1)
-                strcpy(cnt->log_type_str, optarg);
+                cnt->log_type = (unsigned int)atoi(optarg);
             break;
         case 'p':
             if (thread == -1)
@@ -1837,7 +1838,7 @@ struct context **conf_load(struct context **cnt)
      * 4. sysconfig/motion.conf
      */
     /* Get filename , pid file & log file from Command-line. */
-    cnt[0]->log_type_str[0] = 0;
+    cnt[0]->log_type = -1;
     cnt[0]->conf_filename[0] = 0;
     cnt[0]->pid_file[0] = 0;
     cnt[0]->log_file[0] = 0;
@@ -1915,9 +1916,9 @@ struct context **conf_load(struct context **cnt)
     if (cnt[0]->log_file[0])
         cnt[0]->conf.log_file = mystrcpy(cnt[0]->conf.log_file, cnt[0]->log_file);
 
-    /* If log type string was passed from Command-line copy to main thread conf struct. */
-    if (cnt[0]->log_type_str[0])
-        cnt[0]->conf.log_type_str = mystrcpy(cnt[0]->conf.log_type_str, cnt[0]->log_type_str);
+    /* If log type  was passed from Command-line copy to main thread conf struct. */
+    if (cnt[0]->log_type != -1)
+        cnt[0]->conf.log_type = cnt[0]->log_type;
 
     /* if log level was passed from Command-line copy to main thread conf struct. */
     if (cnt[0]->log_level != -1)
@@ -2339,8 +2340,8 @@ static void usage()
     printf("-n\t\t\tRun in non-daemon mode.\n");
     printf("-s\t\t\tRun in setup mode.\n");
     printf("-c config\t\tFull path and filename of config file.\n");
-    printf("-d level\t\tLog level (1-9) (EMR, ALR, CRT, ERR, WRN, NTC, ERR, DBG, ALL). default: 6 / NTC.\n");
-    printf("-k type\t\t\tType of log (COR, STR, ENC, NET, DBL, EVT, TRK, VID, ALL). default: ALL.\n");
+    printf("-d level\t\tLog level (1-9) (EMR, ALR, CRT, ERR, WRN, NTC, INF, DBG, ALL). default: 6 / NTC.\n");
+    printf("-k type\t\t\tType of log (1-9) (COR, STR, ENC, NET, DBL, EVT, TRK, VID, ALL). default: 9 / ALL.\n");
     printf("-p process_id_file\tFull path and filename of process id file (pid file).\n");
     printf("-l log file \t\tFull path and filename of log file.\n");
     printf("-m\t\t\tDisable motion detection at startup.\n");
