@@ -15,7 +15,7 @@
 #ifndef _INCLUDE_CONF_H
 #define _INCLUDE_CONF_H
 
-/* 
+/*
  * More parameters may be added later.
  */
 struct config {
@@ -83,7 +83,7 @@ struct config {
     unsigned long frequency;
     int tuner_number;
     int timelapse;
-    const char *timelapse_mode; 
+    const char *timelapse_mode;
     const char *video_device;
     int v4l2_palette;
     const char *vidpipe;
@@ -134,8 +134,8 @@ struct config {
     char **argv;
 };
 
-/** 
- * typedef for a param copy function. 
+/**
+ * typedef for a param copy function.
  */
 typedef struct context ** (* conf_copy_func)(struct context **, const char *, int);
 typedef const char *(* conf_print_func)(struct context **, char **, int, unsigned int);
@@ -150,7 +150,7 @@ typedef struct {
     int conf_value;                   /* pointer to a field in struct context     */
     conf_copy_func  copy;             /* a function to set the value in 'config'  */
     conf_print_func print;            /* a function to output the value to a file */
-} config_param; 
+} config_param;
 
 extern config_param config_params[];
 

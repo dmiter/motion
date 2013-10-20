@@ -1562,7 +1562,7 @@ static void conf_cmdline(struct context *cnt, int thread)
             break;
         case 'm':
             cnt->pause = 1;
-            break;    
+            break;
         case 'h':
         case '?':
         default:

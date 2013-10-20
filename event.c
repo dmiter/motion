@@ -176,8 +176,8 @@ static void event_sqlnewfile(struct context *cnt, int type  ATTRIBUTE_UNUSED,
 
                 MOTION_LOG(ERR, TYPE_DB, NO_ERRNO, "%s: Connection to PostgreSQL database '%s' failed: %s",
                            cnt->conf.database_dbname, PQerrorMessage(cnt->database_pg));
-                
-                // This function will close the connection to the server and attempt to reestablish a new connection to the same server, 
+
+                // This function will close the connection to the server and attempt to reestablish a new connection to the same server,
                 // using all the same parameters previously used. This may be useful for error recovery if a working connection is lost
                 PQreset(cnt->database_pg);
 
@@ -192,7 +192,7 @@ static void event_sqlnewfile(struct context *cnt, int type  ATTRIBUTE_UNUSED,
             } else if (PQresultStatus(res) != PGRES_COMMAND_OK) {
                 MOTION_LOG(ERR, TYPE_DB, SHOW_ERRNO, "%s: PGSQL query [%s] failed", sqlquery);
                 PQclear(res);
-            } 
+            }
         }
 #endif /* HAVE_PGSQL */
 

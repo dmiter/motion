@@ -117,7 +117,7 @@ unsigned int track_move(struct context *, int, struct coord *, struct images *, 
 
 #define SERVO_BAUDRATE        B9600
 
-#define SERVO_COMMAND_STATUS   0 
+#define SERVO_COMMAND_STATUS   0
 #define SERVO_COMMAND_LEFT_N   1
 #define SERVO_COMMAND_RIGHT_N  2
 #define SERVO_COMMAND_LEFT     3
@@ -165,7 +165,7 @@ unsigned int track_move(struct context *, int, struct coord *, struct images *, 
 #define LQOS_HORIZONAL_DEGREES  120
 
 /*
- * UVC 
+ * UVC
  */
 
 #ifdef MOTION_V4L2

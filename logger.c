@@ -43,7 +43,7 @@ const char* get_log_type_str(unsigned int type)
  * Returns: nothing.
  */
 void set_log_type(unsigned int type)
-{  
+{
     log_type = type;
 
     /* Always show TYPE_ALL log messages */

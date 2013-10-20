@@ -13,8 +13,8 @@
 #ifndef AVERROR /* 0.4.8 & 0.4.9-pre1 */
 
 #if EINVAL > 0
-#define AVERROR(e) (-(e)) 
-#define AVUNERROR(e) (-(e)) 
+#define AVERROR(e) (-(e))
+#define AVUNERROR(e) (-(e))
 #else
 /* Some platforms have E* and errno already negated. */
 #define AVERROR(e) (e)
@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-/* 
+/*
  * Define a codec name/identifier for timelapse videos, so that we can
  * differentiate between normal mpeg1 videos and timelapse videos.
  */
@@ -58,18 +58,18 @@ void ffmpeg_init(void);
 
 /*
  * Open an mpeg file. This is a generic interface for opening either an mpeg1 or
- * an mpeg4 video. If non-standard mpeg1 isn't supported (FFmpeg build > 4680), 
+ * an mpeg4 video. If non-standard mpeg1 isn't supported (FFmpeg build > 4680),
  * calling this function with "mpeg1" as codec results in an error. To create a
  * timelapse video, use TIMELAPSE_CODEC as codec name.
  */
 struct ffmpeg *ffmpeg_open(
-    char *ffmpeg_video_codec, 
-    char *filename, 
+    char *ffmpeg_video_codec,
+    char *filename,
     unsigned char *y,    /* YUV420 Y plane */
     unsigned char *u,    /* YUV420 U plane */
     unsigned char *v,    /* YUV420 V plane */
     int width,
-    int height, 
+    int height,
     int rate,            /* framerate, fps */
     int bps,             /* bitrate; bits per second */
     int vbr              /* variable bitrate */
@@ -80,9 +80,9 @@ int ffmpeg_put_image(struct ffmpeg *);
 
 /* Puts the image defined by u, y and v (YUV420 format). */
 int ffmpeg_put_other_image(
-    struct ffmpeg *ffmpeg, 
-    unsigned char *y, 
-    unsigned char *u, 
+    struct ffmpeg *ffmpeg,
+    unsigned char *y,
+    unsigned char *u,
     unsigned char *v
     );
 

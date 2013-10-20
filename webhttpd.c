@@ -2529,7 +2529,7 @@ void *motion_web_control(void *arg)
     struct context **cnt = arg;
     httpd_run(cnt);
 
-    /* 
+    /*
      * Update how many threads we have running. This is done within a
      * mutex lock to prevent multiple simultaneous updates to
      * 'threads_running'.

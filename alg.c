@@ -12,9 +12,9 @@
 #define MAX2(x, y) ((x) > (y) ? (x) : (y))
 #define MAX3(x, y, z) ((x) > (y) ? ((x) > (z) ? (x) : (z)) : ((y) > (z) ? (y) : (z)))
 
-/** 
- * alg_locate_center_size 
- *      Locates the center and size of the movement. 
+/**
+ * alg_locate_center_size
+ *      Locates the center and size of the movement.
  */
 void alg_locate_center_size(struct images *imgs, int width, int height, struct coord *cent, int tot_labels)
 {
@@ -74,7 +74,7 @@ void alg_locate_center_size(struct images *imgs, int width, int height, struct c
                     continue;
 
                 if(MAX(label_coord[l].minx, label_coord[x].minx) < MIN(label_coord[l].maxx, label_coord[x].maxx) &&
-                    MAX(label_coord[l].miny, label_coord[x].miny) < MIN(label_coord[l].maxy, label_coord[x].maxy)) 
+                    MAX(label_coord[l].miny, label_coord[x].miny) < MIN(label_coord[l].maxy, label_coord[x].maxy))
                     {
                         label_coord[x].minx = MIN(label_coord[l].minx, label_coord[x].minx);
                         label_coord[x].maxx = MAX(label_coord[l].maxx, label_coord[x].maxx);
@@ -124,13 +124,10 @@ void alg_locate_center_size(struct images *imgs, int width, int height, struct c
             cent->y = cent->y / centc;
         }
 
-        
         /* Now we find the size of the Motion. */
-
         /* First reset pointers back to initial value. */
         centc = 0;
         out = imgs->out;
-
 
         for (y = 0; y < height; y++) {
             for (x = 0; x < width; x++) {
@@ -147,16 +144,16 @@ void alg_locate_center_size(struct images *imgs, int width, int height, struct c
 
                     centc++;
                 }
-            }    
+            }
         }
-        
+
         if (centc) {
             cent->minx = cent->x - xdist / centc * 2;
             cent->maxx = cent->x + xdist / centc * 2;
-            /* 
+            /*
              * Make the box a little bigger in y direction to make sure the
              * heads fit in so we multiply by 3 instead of 2 which seems to
-             * to work well in practical. 
+             * to work well in practical.
              */
             cent->miny = cent->y - ydist / centc * 3;
             cent->maxy = cent->y + ydist / centc * 2;
@@ -188,17 +185,17 @@ void alg_locate_center_size(struct images *imgs, int width, int height, struct c
     cent->miny += cent->miny % 2;
     cent->maxx -= cent->maxx % 2;
     cent->maxy -= cent->maxy % 2;
-    
+
     cent->width = cent->maxx - cent->minx;
     cent->height = cent->maxy - cent->miny;
-    
+
     /*
      * We want to center Y coordinate to be the center of the action.
      * The head of a person is important so we correct the cent.y coordinate
-     * to match the correction to include a persons head that we just did above. 
+     * to match the correction to include a persons head that we just did above.
      */
     cent->y = (cent->miny + cent->maxy) / 2;
-    
+
     /* Set as first label, so drawing box/cross will work */
     imgs->labels_all[0].x = cent->x;
     imgs->labels_all[0].y = cent->y;
@@ -209,9 +206,9 @@ void alg_locate_center_size(struct images *imgs, int width, int height, struct c
 }
 
 
-/** 
- * alg_draw_location 
- *      Draws a box around the movement. 
+/**
+ * alg_draw_location
+ *      Draws a box around the movement.
  */
 void alg_draw_location(struct coord *cent, struct images *imgs, int width, unsigned char *new,
                        int style, int mode, int process_thisframe, int tot_labels)
@@ -239,7 +236,7 @@ void alg_draw_location(struct coord *cent, struct images *imgs, int width, unsig
         }
 
         for (y = cent->miny; y <= cent->maxy; y++) {
-            int width_minx_y = cent->minx + y * width; 
+            int width_minx_y = cent->minx + y * width;
             int width_maxx_y = cent->maxx + y * width;
 
             out[width_minx_y] =~out[width_minx_y];
@@ -267,7 +264,7 @@ void alg_draw_location(struct coord *cent, struct images *imgs, int width, unsig
             }
 
             for (y = current_label->miny; y <= current_label->maxy; y++) {
-                int width_minx_y = current_label->minx + y * width; 
+                int width_minx_y = current_label->minx + y * width;
                 int width_maxx_y = current_label->maxx + y * width;
 
                 new[width_minx_y] =~new[width_minx_y];
@@ -299,8 +296,8 @@ void alg_draw_location(struct coord *cent, struct images *imgs, int width, unsig
 }
 
 
-/** 
- * alg_draw_red_location 
+/**
+ * alg_draw_red_location
  *          Draws a RED box around the movement.
  */
 void alg_draw_red_location(struct coord *cent, struct images *imgs, int width, unsigned char *new,
@@ -335,7 +332,7 @@ void alg_draw_red_location(struct coord *cent, struct images *imgs, int width, u
         }
 
         for (y = cent->miny; y <= cent->maxy; y++) {
-            int width_minx_y = cent->minx + y * width; 
+            int width_minx_y = cent->minx + y * width;
             int width_maxx_y = cent->maxx + y * width;
 
             out[width_minx_y] =~out[width_minx_y];
@@ -356,7 +353,7 @@ void alg_draw_red_location(struct coord *cent, struct images *imgs, int width, u
             int width_maxy = width * current_label->maxy;
             int cwidth_miny = cwidth * (current_label->miny / 2);
             int cwidth_maxy = cwidth * (current_label->maxy / 2);
-            
+
             for (x = current_label->minx + 2; x <= current_label->maxx - 2; x += 2) {
                 int width_miny_x = x + width_miny;
                 int width_maxy_x = x + width_maxy;
@@ -382,9 +379,9 @@ void alg_draw_red_location(struct coord *cent, struct images *imgs, int width, u
             }
 
             for (y = current_label->miny; y <= current_label->maxy; y += 2) {
-                int width_minx_y = current_label->minx + y * width; 
+                int width_minx_y = current_label->minx + y * width;
                 int width_maxx_y = current_label->maxx + y * width;
-                int cwidth_minx_y = (current_label->minx / 2) + (y / 2) * cwidth; 
+                int cwidth_minx_y = (current_label->minx / 2) + (y / 2) * cwidth;
                 int cwidth_maxx_y = (current_label->maxx / 2) + (y / 2) * cwidth;
 
                 new_u[cwidth_minx_y] = 128;
@@ -452,7 +449,7 @@ void alg_noise_tune(struct context *cnt, unsigned char *new)
     unsigned char *smartmask = imgs->smartmask_final;
 
     i = imgs->motionsize;
-            
+
     for (; i > 0; i--) {
         diff = ABS(*ref - *new);
 
@@ -471,7 +468,7 @@ void alg_noise_tune(struct context *cnt, unsigned char *new)
 
     if (count > 3)  /* Avoid divide by zero. */
         sum /= count / 3;
-    
+
     /* 5: safe, 4: regular, 3: more sensitive */
     cnt->noise = 4 + (cnt->noise + sum) / 2;
 }
@@ -493,7 +490,7 @@ void alg_threshold_tune(struct context *cnt, int diffs, int motion)
 
     for (i = 0; i < THRESHOLD_TUNE_LENGTH - 1; i++) {
         sum += cnt->diffs_last[i];
-        
+
         if (cnt->diffs_last[i + 1] && !motion)
             cnt->diffs_last[i] = cnt->diffs_last[i + 1];
         else
@@ -541,8 +538,8 @@ typedef struct {
 /**
  * iflood
  *
- */ 
-static int iflood(int x, int y, int width, int height, 
+ */
+static int iflood(int x, int y, int width, int height,
                   unsigned char *out, int *labels, int newvalue, int oldvalue)
 {
     int l, x1, x2, dy;
@@ -566,32 +563,32 @@ static int iflood(int x, int y, int width, int height,
             labels[y * width + x] = newvalue;
             count++;
         }
-        
+
         if (x >= x1)
             goto skip;
-        
+
         l = x + 1;
-        
+
         if (l < x1)
             PUSH(y, l, x1 - 1, -dy);  /* Leak on left? */
-        
+
         x = x1 + 1;
-        
+
         do {
             for (; x < width && out[y * width + x] != 0 && labels[y * width + x] == oldvalue; x++) {
                 labels[y * width + x] = newvalue;
                 count++;
             }
-            
+
             PUSH(y, l, x - 1, dy);
-            
+
             if (x > x2 + 1)
                 PUSH(y, x2 + 1, x - 1, -dy);  /* Leak on right? */
-            
+
             skip:
-            
+
             for (x++; x <= x2 && !(out[y * width + x] != 0 && labels[y * width + x] == oldvalue); x++);
-            
+
             l = x;
         } while (x <= x2);
     }
@@ -601,7 +598,7 @@ static int iflood(int x, int y, int width, int height,
 /**
  * alg_labeling
  *
- */ 
+ */
 static int alg_labeling(struct context *cnt)
 {
     struct images *imgs = &cnt->imgs;
@@ -629,13 +626,13 @@ static int alg_labeling(struct context *cnt)
                 labels[pixelpos] = 1;
                 continue;
             }
-            
+
             /* Already visited by iflood */
             if (labels[pixelpos] > 0)
                 continue;
 
             labelsize = iflood(ix, iy, width, height, out, labels, mark_as_label, 0);
-            
+
             if (labelsize > cnt->threshold) {
                 /* Only care about MAX_LABELS, NB: this is MAX_LABELS first, not MAX_LABELS best. */
                 /* but with large enough number, probalby doesn't matter */
@@ -661,22 +658,22 @@ static int alg_labeling(struct context *cnt)
 
     MOTION_LOG(DBG, TYPE_ALL, NO_ERRNO, "%s: %i Valid labels found. Largest area: %i Pixel(s). "
                "Largest Label: %i", *tot_labels, imgs->labelsize_max, imgs->largest_label);
-    
+
     /* Return group of significant labels. */
     return diffs;
 }
 
-/** 
- * dilate9 
- *      Dilates a 3x3 box. 
+/**
+ * dilate9
+ *      Dilates a 3x3 box.
  */
 static int dilate9(unsigned char *img, int width, int height, void *buffer)
 {
-    /* 
-     * - row1, row2 and row3 represent lines in the temporary buffer. 
+    /*
+     * - row1, row2 and row3 represent lines in the temporary buffer.
      * - Window is a sliding window containing max values of the columns
      *   in the 3x3 matrix.
-     * - width is an index into the sliding window (this is faster than 
+     * - width is an index into the sliding window (this is faster than
      *   doing modulo 3 on i).
      * - blob keeps the current max value.
      */
@@ -695,7 +692,7 @@ static int dilate9(unsigned char *img, int width, int height, void *buffer)
 
     /* Pointer to the current row in img. */
     yp = img;
-    
+
     for (y = 0; y < height; y++) {
         /* Move down one step; row 1 becomes the previous row 2 and so on. */
         rowTemp = row1;
@@ -708,7 +705,7 @@ static int dilate9(unsigned char *img, int width, int height, void *buffer)
             memset(row3, 0, width);
         else
             memcpy(row3, yp+width, width);
-        
+
         /* Init slots 0 and 1 in the moving window. */
         window[0] = MAX3(row1[0], row2[0], row3[0]);
         window[1] = MAX3(row1[1], row2[1], row3[1]);
@@ -717,7 +714,7 @@ static int dilate9(unsigned char *img, int width, int height, void *buffer)
         blob = MAX2(window[0], window[1]);
         widx = 2;
 
-        /* 
+        /*
          * Iterate over the current row; index i is off by one to eliminate
          * a lot of +1es in the loop.
          */
@@ -725,7 +722,7 @@ static int dilate9(unsigned char *img, int width, int height, void *buffer)
             /* Get the max value of the next column in the 3x3 matrix. */
             latest = window[widx] = MAX3(row1[i], row2[i], row3[i]);
 
-            /* 
+            /*
              * If the value is larger than the current max, use it. Otherwise,
              * calculate a new max (because the new value may not be the max.
              */
@@ -749,33 +746,33 @@ static int dilate9(unsigned char *img, int width, int height, void *buffer)
         *yp = *(yp + width - 1) = 0;
         yp += width;
     }
-    
+
     return sum;
 }
 
-/** 
- * dilate5 
- *      Dilates a + shape. 
+/**
+ * dilate5
+ *      Dilates a + shape.
  */
 static int dilate5(unsigned char *img, int width, int height, void *buffer)
 {
-    /* 
-     * - row1, row2 and row3 represent lines in the temporary buffer. 
+    /*
+     * - row1, row2 and row3 represent lines in the temporary buffer.
      * - mem holds the max value of the overlapping part of two + shapes.
      */
     int y, i, sum = 0;
     unsigned char *row1, *row2, *row3, *rowTemp, *yp;
     unsigned char blob, mem, latest;
-    
+
     /* Set up row pointers in the temporary buffer. */
     row1 = buffer;
     row2 = row1 + width;
     row3 = row2 + width;
-    
+
     /* Init rows 2 and 3. */
     memset(row2, 0, width);
     memcpy(row3, img, width);
-    
+
     /* Pointer to the current row in img. */
     yp = img;
 
@@ -785,7 +782,7 @@ static int dilate5(unsigned char *img, int width, int height, void *buffer)
         row1 = row2;
         row2 = row3;
         row3 = rowTemp;
-        
+
         /* If we're at the last row, fill with zeros, otherwise copy from img. */
         if (y == height - 1)
             memset(row3, 0, width);
@@ -795,11 +792,11 @@ static int dilate5(unsigned char *img, int width, int height, void *buffer)
         /* Init mem and set blob to force an evaluation of the entire + shape. */
         mem = MAX2(row2[0], row2[1]);
         blob = 1; /* dummy value, must be > 0 */
-        
+
         for (i = 1; i < width - 1; i++) {
             /* Get the max value of the "right edge" of the + shape. */
             latest = MAX3(row1[i], row2[i + 1], row3[i]);
-            
+
             if (blob == 0) {
                 /* In case the last blob is zero, only latest matters. */
                 blob = latest;
@@ -824,9 +821,9 @@ static int dilate5(unsigned char *img, int width, int height, void *buffer)
     return sum;
 }
 
-/** 
- * erode9 
- *      Erodes a 3x3 box. 
+/**
+ * erode9
+ *      Erodes a 3x3 box.
  */
 static int erode9(unsigned char *img, int width, int height, void *buffer, unsigned char flag)
 {
@@ -869,8 +866,8 @@ static int erode9(unsigned char *img, int width, int height, void *buffer, unsig
 }
 
 /**
- * erode5 
- *      Erodes in a + shape. 
+ * erode5
+ *      Erodes in a + shape.
  */
 static int erode5(unsigned char *img, int width, int height, void *buffer, unsigned char flag)
 {
@@ -886,7 +883,7 @@ static int erode5(unsigned char *img, int width, int height, void *buffer, unsig
     for (y = 0; y < height; y++) {
         memcpy(Row1, Row2, width);
         memcpy(Row2, Row3, width);
-    
+
         if (y == height-1)
             memset(Row3, flag, width);
         else
@@ -908,8 +905,8 @@ static int erode5(unsigned char *img, int width, int height, void *buffer, unsig
     return sum;
 }
 
-/** 
- * alg_despeckle 
+/**
+ * alg_despeckle
  *      Despeckling routine to remove noisy detections.
  */
 int alg_despeckle(struct context *cnt, int olddiffs)
@@ -924,12 +921,12 @@ int alg_despeckle(struct context *cnt, int olddiffs)
     for (i = 0; i < len; i++) {
         switch (cnt->conf.despeckle_filter[i]) {
         case 'E':
-            if ((diffs = erode9(out, width, height, common_buffer, 0)) == 0) 
+            if ((diffs = erode9(out, width, height, common_buffer, 0)) == 0)
                 i = len;
             done = 1;
             break;
         case 'e':
-            if ((diffs = erode5(out, width, height, common_buffer, 0)) == 0) 
+            if ((diffs = erode5(out, width, height, common_buffer, 0)) == 0)
                 i = len;
             done = 1;
             break;
@@ -954,12 +951,12 @@ int alg_despeckle(struct context *cnt, int olddiffs)
     /* If conf.despeckle_filter contains any valid action EeDdl */
     if (done)
         return diffs;
-    
+
     return olddiffs;
 }
 
-/** 
- * alg_tune_smartmask 
+/**
+ * alg_tune_smartmask
  *      Generates actual smartmask. Calculate sensitivity based on motion.
  */
 void alg_tune_smartmask(struct context *cnt)
@@ -992,9 +989,9 @@ void alg_tune_smartmask(struct context *cnt)
             smartmask_final[i] = 255;
     }
     /* Further expansion (here:erode due to inverted logic!) of the mask. */
-    diff = erode9(smartmask_final, cnt->imgs.width, cnt->imgs.height, 
+    diff = erode9(smartmask_final, cnt->imgs.width, cnt->imgs.height,
                   cnt->imgs.common_buffer, 255);
-    diff = erode5(smartmask_final, cnt->imgs.width, cnt->imgs.height, 
+    diff = erode5(smartmask_final, cnt->imgs.width, cnt->imgs.height,
                   cnt->imgs.common_buffer, 255);
 }
 
@@ -1026,15 +1023,15 @@ int alg_diff_standard(struct context *cnt, unsigned char *new)
         /* Apply fixed mask */
         if (mask)
             curdiff = ((int)(curdiff * *mask++) / 255);
-            
+
         if (smartmask_speed) {
             if (curdiff > noise) {
-                /* 
+                /*
                  * Increase smart_mask sensitivity every frame when motion
                  * is detected. (with speed=5, mask is increased by 1 every
                  * second. To be able to increase by 5 every second (with
                  * speed=10) we add 5 here. NOT related to the 5 at ratio-
-                 * calculation. 
+                 * calculation.
                  */
                 if (cnt->event_nr != cnt->prev_event)
                     (*smartmask_buffer) += SMARTMASK_SENSITIVITY_INCR;
@@ -1058,7 +1055,7 @@ int alg_diff_standard(struct context *cnt, unsigned char *new)
 }
 
 /**
- * alg_diff_fast 
+ * alg_diff_fast
  *      Very fast diff function, does not apply mask overlaying.
  */
 static char alg_diff_fast(struct context *cnt, int max_n_changes, unsigned char *new)
@@ -1089,23 +1086,23 @@ static char alg_diff_fast(struct context *cnt, int max_n_changes, unsigned char 
     return 0;
 }
 
-/** 
- * alg_diff 
+/**
+ * alg_diff
  *      Uses diff_fast to quickly decide if there is anything worth
  *      sending to diff_standard.
  */
 int alg_diff(struct context *cnt, unsigned char *new)
 {
     int diffs = 0;
-    
+
     if (alg_diff_fast(cnt, cnt->conf.max_changes / 2, new))
         diffs = alg_diff_standard(cnt, new);
 
     return diffs;
 }
 
-/** 
- * alg_lightswitch 
+/**
+ * alg_lightswitch
  *      Detects a sudden massive change in the picture.
  *      It is assumed to be the light being switched on or a camera displacement.
  *      In any way the user doesn't think it is worth capturing.
@@ -1113,23 +1110,23 @@ int alg_diff(struct context *cnt, unsigned char *new)
 int alg_lightswitch(struct context *cnt, int diffs)
 {
     struct images *imgs = &cnt->imgs;
-    
+
     if (cnt->conf.lightswitch < 0)
         cnt->conf.lightswitch = 0;
     if (cnt->conf.lightswitch > 100)
         cnt->conf.lightswitch = 100;
-    
+
     /* Is lightswitch percent of the image changed? */
     if (diffs > (imgs->motionsize * cnt->conf.lightswitch / 100))
         return 1;
-    
+
     return 0;
 }
 
 /**
  * alg_switchfilter
  *
- */ 
+ */
 int alg_switchfilter(struct context *cnt, int diffs, unsigned char *newimg)
 {
     int linediff = diffs / cnt->imgs.height;
@@ -1140,14 +1137,14 @@ int alg_switchfilter(struct context *cnt, int diffs, unsigned char *newimg)
     for (y = 0; y < cnt->imgs.height; y++) {
         line = 0;
         for (x = 0; x < cnt->imgs.width; x++) {
-            if (*(out++)) 
+            if (*(out++))
                 line++;
         }
 
-        if (line > cnt->imgs.width / 18) 
+        if (line > cnt->imgs.width / 18)
             vertlines++;
-        
-        if (line > linediff * 2) 
+
+        if (line > linediff * 2)
             lines++;
     }
 
@@ -1163,13 +1160,13 @@ int alg_switchfilter(struct context *cnt, int diffs, unsigned char *newimg)
     return 0;
 }
 
-/** 
+/**
  * alg_update_reference_frame
  *
  *   Called from 'motion_loop' to calculate the reference frame
  *   Moving objects are excluded from the reference frame for a certain
  *   amount of time to improve detection.
- * 
+ *
  * Parameters:
  *
  *   cnt    - current thread's context struct
@@ -1179,7 +1176,7 @@ int alg_switchfilter(struct context *cnt, int diffs, unsigned char *newimg)
 /* Controled by ./configure --with-static-obj */
 //#define ACCEPT_STATIC_OBJECT_TIME 10  /* Seconds */
 #define EXCLUDE_LEVEL_PERCENT 20
-void alg_update_reference_frame(struct context *cnt, int action) 
+void alg_update_reference_frame(struct context *cnt, int action)
 {
 #ifdef ACCEPT_STATIC_OBJECT_TIME
     int accept_timer = cnt->lastrate * ACCEPT_STATIC_OBJECT_TIME;
@@ -1232,6 +1229,6 @@ void alg_update_reference_frame(struct context *cnt, int action)
         /* Copy fresh image */
         memcpy(cnt->imgs.ref, cnt->imgs.image_virgin, cnt->imgs.size);
         /* Reset static objects */
-        memset(cnt->imgs.ref_dyn, 0, cnt->imgs.motionsize * sizeof(cnt->imgs.ref_dyn)); 
+        memset(cnt->imgs.ref_dyn, 0, cnt->imgs.motionsize * sizeof(cnt->imgs.ref_dyn));
     }
 }

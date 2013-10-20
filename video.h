@@ -75,7 +75,7 @@ struct video_dev {
     /* v4l */
     int v4l2;
     void *v4l2_private;
-    
+
     int size_map;
     int v4l_fmt;
     unsigned char *v4l_buffers[2];
