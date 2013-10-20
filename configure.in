@@ -13,6 +13,20 @@ VIDEO="video.o video2.o video_common.o"
 AC_SUBST(VIDEO)
 
 #
+# Check to include static Objects after some time
+#
+STATIC_OBJ="no"
+AC_ARG_WITH(static-obj,
+[  --with-static-obj       Include static Objects after some time.
+                          ],
+STATIC_OBJ="$withval"
+)
+
+if test "x${STATIC_OBJ}" = "xyes"; then
+	TEMP_CFLAGS="${TEMP_CFLAGS} -DACCEPT_STATIC_OBJECT_TIME=10"
+fi
+
+#
 # Check to Exclude V4L
 #
 V4L="yes"

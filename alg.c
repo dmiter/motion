@@ -1314,11 +1314,14 @@ int alg_switchfilter(struct context *cnt, int diffs, unsigned char *newimg)
  *   action - UPDATE_REF_FRAME or RESET_REF_FRAME
  *
  */
-#define ACCEPT_STATIC_OBJECT_TIME 10  /* Seconds */
+/* Controled by ./configure --with-static-obj */
+//#define ACCEPT_STATIC_OBJECT_TIME 10  /* Seconds */
 #define EXCLUDE_LEVEL_PERCENT 20
 void alg_update_reference_frame(struct context *cnt, int action) 
 {
+#ifdef ACCEPT_STATIC_OBJECT_TIME
     int accept_timer = cnt->lastrate * ACCEPT_STATIC_OBJECT_TIME;
+#endif
     int i, threshold_ref;
     int *ref_dyn = cnt->imgs.ref_dyn;
     unsigned char *image_virgin = cnt->imgs.image_virgin;
@@ -1326,15 +1329,17 @@ void alg_update_reference_frame(struct context *cnt, int action)
     unsigned char *smartmask = cnt->imgs.smartmask_final;
     unsigned char *out = cnt->imgs.out;
 
+#ifdef ACCEPT_STATIC_OBJECT_TIME
     if (cnt->lastrate > 5)  /* Match rate limit */
         accept_timer /= (cnt->lastrate / 3);
-
+#endif
     if (action == UPDATE_REF_FRAME) { /* Black&white only for better performance. */
         threshold_ref = cnt->noise * EXCLUDE_LEVEL_PERCENT / 100;
 
         for (i = cnt->imgs.motionsize; i > 0; i--) {
             /* Exclude pixels from ref frame well below noise level. */
             if (((int)(abs(*ref - *image_virgin)) > threshold_ref) && (*smartmask)) {
+#ifdef ACCEPT_STATIC_OBJECT_TIME
                 if (*ref_dyn == 0) { /* Always give new pixels a chance. */
                     *ref_dyn = 1;
                 } else if (*ref_dyn > accept_timer) { /* Include static Object after some time. */
@@ -1342,7 +1347,9 @@ void alg_update_reference_frame(struct context *cnt, int action)
                     *ref = *image_virgin;
                 } else if (*out) {
                     (*ref_dyn)++; /* Motionpixel? Keep excluding from ref frame. */
-                } else {
+                } else
+#endif
+                {
                     *ref_dyn = 0; /* Nothing special - release pixel. */
                     *ref = (*ref + *image_virgin) / 2;
                 }
