@@ -3,7 +3,7 @@
  *
  *      HTTP Control interface for motion.
  *
- *      Specs : http://www.lavrsen.dk/twiki/bin/view/Motion/MotionHttpAPI
+ *      Specs : http://www.lavrsen.dk/foswiki/bin/view/Motion/MotionHttpAPI
  *
  *      Copyright 2004-2005 by Angel Carpintero  (motiondevelop@gmail.com)
  *      This software is distributed under the GNU Public License Version 2

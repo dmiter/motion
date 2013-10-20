@@ -134,8 +134,8 @@ unsigned int track_move(struct context *cnt, int dev, struct coord *cent, struct
 
 /******************************************************************************
     Stepper motor on serial port
-    http://www.lavrsen.dk/twiki/bin/view/Motion/MotionTracking
-    http://www.lavrsen.dk/twiki/bin/view/Motion/MotionTrackerAPI
+    http://www.lavrsen.dk/foswiki/bin/view/Motion/MotionTracking
+    http://www.lavrsen.dk/foswiki/bin/view/Motion/MotionTrackerAPI
 ******************************************************************************/
 
 static unsigned int stepper_command(struct context *cnt, unsigned int motor,
@@ -288,8 +288,8 @@ static unsigned int stepper_move(struct context *cnt,
 
 /******************************************************************************
  *   Servo motor on serial port
- *   http://www.lavrsen.dk/twiki/bin/view/Motion/MotionTracking
- *   http://www.lavrsen.dk/twiki/bin/view/Motion/MotionTrackerServoAPI
+ *   http://www.lavrsen.dk/foswiki/bin/view/Motion/MotionTracking
+ *   http://www.lavrsen.dk/foswiki/bin/view/Motion/MotionTrackerServoAPI
  ******************************************************************************/
 
 static int servo_open(struct context *cnt)
