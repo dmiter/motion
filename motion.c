@@ -8,13 +8,7 @@
  */
 #include "ffmpeg.h"
 #include "motion.h"
-
-#if (defined(BSD) && !defined(PWCBSD)) 
-#include "video_freebsd.h"
-#else
 #include "video.h"
-#endif /* BSD */
-
 #include "conf.h"
 #include "alg.h"
 #include "track.h"
@@ -778,7 +772,7 @@ static int motion_init(struct context *cnt)
     /* create a reference frame */
     alg_update_reference_frame(cnt, RESET_REF_FRAME);
 
-#if defined(HAVE_LINUX_VIDEODEV_H) && !defined(WITHOUT_V4L) && !defined(BSD)    
+#if (defined(HAVE_LINUX_VIDEODEV_H) || defined(MOTION_V4L2)) && (!defined(WITHOUT_V4L))
     /* open video loopback devices if enabled */
     if (cnt->conf.vidpipe) {
         MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, "%s: Opening video loopback device for normal pictures");
@@ -803,7 +797,7 @@ static int motion_init(struct context *cnt)
             return -1;
         }
     }
-#endif /* !WITHOUT_V4L && !BSD */
+#endif /* !WITHOUT_V4L */
 
 #if defined(HAVE_MYSQL) || defined(HAVE_PGSQL) || defined(HAVE_SQLITE3)
     if (cnt->conf.database_type) {
@@ -1162,16 +1156,6 @@ static void *motion_loop(void *arg)
 
     if (cnt->track.type)
         cnt->moved = track_center(cnt, cnt->video_dev, 0, 0, 0);
-
-#ifdef __OpenBSD__
-    /* 
-     * FIXMARK 
-     * Fixes zombie issue on OpenBSD 4.6
-     */
-    struct sigaction sig_handler_action;
-    struct sigaction sigchild_action;
-    setup_signals(&sig_handler_action, &sigchild_action);
-#endif
 
     /*
      * MAIN MOTION LOOP BEGINS HERE 
@@ -2318,13 +2302,8 @@ static void become_daemon(void)
         MOTION_LOG(ERR, TYPE_ALL, SHOW_ERRNO, "%s: Could not change directory");
     
 
-#if (defined(BSD))
-    setpgrp(0, getpid());
-#else
     setpgrp();
-#endif /* BSD */
 
-    
     if ((i = open("/dev/tty", O_RDWR)) >= 0) {
         ioctl(i, TIOCNOTTY, NULL);
         close(i);
@@ -2709,7 +2688,7 @@ int main (int argc, char **argv)
          * Start the motion threads. First 'cnt_list' item is global if 'thread'
          * option is used, so start at 1 then and 0 otherwise.
          */
-        for (i = cnt_list[1] != NULL ? 1 : 0; cnt_list[i]; i++) {
+        for (i = (cnt_list[1] != NULL) ? 1 : 0; cnt_list[i]; i++) {
             /* If i is 0 it means no thread files and we then set the thread number to 1 */
             cnt_list[i]->threadnr = i ? i : 1;
 

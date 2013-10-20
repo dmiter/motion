@@ -16,9 +16,9 @@
 
 #if defined(HAVE_LINUX_VIDEODEV_H) && (!defined(WITHOUT_V4L))
 #include <linux/videodev.h>
-#include "vloopback_motion.h"
-#include "pwc-ioctl.h"
 #endif
+#include "pwc-ioctl.h"
+#include "vloopback_motion.h"
 
 /* video4linux stuff */
 #define NORM_DEFAULT    0

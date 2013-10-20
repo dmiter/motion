@@ -24,12 +24,7 @@
  *      option should be configurable by the config file.
  */
 #include "motion.h"
-
-#if (defined(BSD) && !defined(PWCBSD))
-#include "video_freebsd.h"
-#else
 #include "video.h"
-#endif /* BSD */
 
 #ifndef HAVE_GET_CURRENT_DIR_NAME
 char *get_current_dir_name(void)
@@ -103,9 +98,6 @@ struct config conf_template = {
     tuner_number:                   0,
     timelapse:                      0,
     timelapse_mode:                 DEF_TIMELAPSE_MODE,
-#if (defined(BSD))
-    tuner_device:                   NULL,
-#endif
     video_device:                   VIDEO_DEVICE,
     v4l2_palette:                   DEF_PALETTE,
     vidpipe:                        NULL,
@@ -160,7 +152,6 @@ struct config conf_template = {
     log_level:                      LEVEL_DEFAULT+10,
     log_type_str:                   NULL,
 };
-
 
 static struct context **copy_bool(struct context **, const char *, int);
 static struct context **copy_int(struct context **, const char *, int);
@@ -239,8 +230,7 @@ config_param config_params[] = {
     "\n###########################################################\n"
     "# Capture device options\n"
     "############################################################\n\n"
-    "# Videodevice to be used for capturing  (default /dev/video0)\n"
-    "# for FreeBSD default is /dev/bktr0",
+    "# Videodevice to be used for capturing  (default /dev/video0)",
     0,
     CONF_OFFSET(video_device),
     copy_string,
@@ -280,17 +270,6 @@ config_param config_params[] = {
     copy_int,
     print_int
     },
-#if (defined(BSD))
-    {
-    "tunerdevice",
-    "# Tuner device to be used for capturing using tuner as source (default /dev/tuner0)\n"
-    "# This is ONLY used for FreeBSD. Leave it commented out for Linux",
-    0,
-    CONF_OFFSET(tuner_device),
-    copy_string,
-    print_string
-    },
-#endif
     {
     "input",
     "# The video input to be used (default: -1)\n"
@@ -1643,8 +1622,7 @@ struct context **conf_cmdparse(struct context **cnt, const char *cmd, const char
     }
 
     /* We reached the end of config_params without finding a matching option. */
-    MOTION_LOG(ALR, TYPE_ALL, NO_ERRNO, "%s: Unknown config option \"%s\"",
-               cmd);
+    MOTION_LOG(ALR, TYPE_ALL, NO_ERRNO, "%s: Unknown config option \"%s\"", cmd);
 
     return cnt;
 }

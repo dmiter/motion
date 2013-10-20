@@ -12,10 +12,6 @@
 
 #include "config.h"
 
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-#define BSD
-#endif
-
 /* Includes */
 #ifdef HAVE_MYSQL
 #include <mysql.h>
@@ -51,8 +47,12 @@
 #include <stdint.h>
 
 #define _LINUX_TIME_H 1
-#if defined(HAVE_LINUX_VIDEODEV_H) && (!defined(WITHOUT_V4L)) && (!defined(BSD))
+#if defined(HAVE_LINUX_VIDEODEV_H) && (!defined(WITHOUT_V4L))
 #include <linux/videodev.h>
+#endif
+
+#ifdef MOTION_V4L2
+#include <linux/videodev2.h>
 #endif
 
 #include <pthread.h>
@@ -84,10 +84,9 @@
 #endif
 
 /* strerror_r() XSI vs GNU */
-#if (defined(BSD)) || ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! _GNU_SOURCE)
+#if ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! _GNU_SOURCE)
 #define XSI_STRERROR_R
 #endif
-
 
 /* 
  *  The macro below defines a version of sleep using nanosleep
@@ -398,9 +397,6 @@ struct context {
     int missing_frame_counter;               /* counts failed attempts to fetch picture frame from camera */
     unsigned int lost_connection;    
 
-#if (defined(BSD))
-    int tuner_dev;
-#endif
     int video_dev;
     int pipe;
     int mpipe;
@@ -453,4 +449,5 @@ FILE * myfopen(const char *, const char *, size_t);
 int myfclose(FILE *);
 size_t mystrftime(const struct context *, char *, size_t, const char *, const struct tm *, const char *, int);
 int create_path(const char *);
+
 #endif /* _INCLUDE_MOTION_H */

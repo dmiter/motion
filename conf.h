@@ -84,9 +84,6 @@ struct config {
     int tuner_number;
     int timelapse;
     const char *timelapse_mode; 
-#if (defined(BSD))
-    const char *tuner_device;
-#endif
     const char *video_device;
     int v4l2_palette;
     const char *vidpipe;

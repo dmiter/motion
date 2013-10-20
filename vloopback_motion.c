@@ -9,9 +9,16 @@
  *
  */
 #include "vloopback_motion.h"
-#if defined(HAVE_LINUX_VIDEODEV_H) && (!defined(WITHOUT_V4L)) && (!defined(BSD))
+#if (defined(HAVE_LINUX_VIDEODEV_H) || defined(MOTION_V4L2)) && (!defined(WITHOUT_V4L))
 #include <sys/utsname.h>
 #include <dirent.h>
+
+#define ROUND_UP_2(num)  (((num)+1)&~1)
+#define ROUND_UP_4(num)  (((num)+3)&~3)
+#define ROUND_UP_8(num)  (((num)+7)&~7)
+#define ROUND_UP_16(num) (((num)+15)&~15)
+#define ROUND_UP_32(num) (((num)+31)&~31)
+#define ROUND_UP_64(num) (((num)+63)&~63)
 
 /**
  * v4l_open_vidpipe
@@ -41,11 +48,11 @@ static int v4l_open_vidpipe(void)
 
     if (strcmp(minor, "5") < 0) {
         FILE *vloopbacks;
-        char *loop;
+//        char *loop;
         char *input;
         char *istatus;
         char *output;
-        char *ostatus;
+//        char *ostatus;
 
         vloopbacks = fopen("/proc/video/vloopback/vloopbacks", "r");
 
@@ -76,11 +83,11 @@ static int v4l_open_vidpipe(void)
         while (fgets(buffer, sizeof(buffer), vloopbacks)) {
             if (strlen(buffer) > 1) {
                 buffer[strlen(buffer)-1] = 0;
-                loop = strtok(buffer, "\t");
+                /*loop =*/(void)strtok(buffer, "\t");
                 input = strtok(NULL, "\t");
                 istatus = strtok(NULL, "\t");
                 output = strtok(NULL, "\t");
-                ostatus = strtok(NULL, "\t");
+                /*ostatus =*/(void)strtok(NULL, "\t");
 
                 if (istatus[0] == '-') {
                     snprintf(pipepath, sizeof(pipepath), "/dev/%s", input);
@@ -126,7 +133,7 @@ static int v4l_open_vidpipe(void)
 
                     ptr = strtok(buffer, " ");
 
-                    if (strcmp(ptr, "Video")) {
+                    if (strcmp(ptr, "video")) {
                         close(fd);
                         continue;
                     }
@@ -135,7 +142,7 @@ static int v4l_open_vidpipe(void)
                     minor = strtok(NULL, " ");
                     io  = strtok(NULL, " \n");
 
-                    if (strcmp(major, "loopback") || strcmp(io, "input")) {
+                    if (strcmp(major, "Loopback") || strcmp(io, "Input")) {
                         close(fd);
                         continue;
                     }
@@ -182,8 +189,13 @@ static int v4l_open_vidpipe(void)
 static int v4l_startpipe(const char *dev_name, int width, int height, int type)
 {
     int dev;
+#ifdef MOTION_V4L2
+    struct v4l2_capability vid_caps;
+    struct v4l2_format vid_format;
+#else
     struct video_picture vid_pic;
     struct video_window vid_win;
+#endif
 
     if (!strcmp(dev_name, "-")) {
         dev = v4l_open_vidpipe();
@@ -199,6 +211,46 @@ static int v4l_startpipe(const char *dev_name, int width, int height, int type)
         return -1;
     }
 
+#ifdef MOTION_V4L2
+    if (ioctl(dev, VIDIOC_QUERYCAP, &vid_caps) == -1) {
+        MOTION_LOG(ERR, TYPE_VIDEO, SHOW_ERRNO, "%s: ioctl (VIDIOC_QUERYCAP)");
+        return -1;
+    }
+
+    memset(&vid_format, 0, sizeof(vid_format));
+    ioctl(dev, VIDIOC_G_FMT, &vid_format);
+
+    vid_format.type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
+    vid_format.fmt.pix.width  = width;
+    vid_format.fmt.pix.height = height;
+    vid_format.fmt.pix.field  = V4L2_FIELD_NONE;
+    vid_format.fmt.pix.colorspace  = V4L2_COLORSPACE_SRGB;
+    vid_format.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
+
+    switch(vid_format.fmt.pix.pixelformat) {
+    case V4L2_PIX_FMT_YUV420:
+    case V4L2_PIX_FMT_YVU420:
+        vid_format.fmt.pix.bytesperline = width;
+        vid_format.fmt.pix.sizeimage = ROUND_UP_4(width) * ROUND_UP_2(height);
+        vid_format.fmt.pix.sizeimage += 2 * ((ROUND_UP_8(width) / 2) * (ROUND_UP_2(height) / 2));
+        break;
+    case V4L2_PIX_FMT_UYVY:
+    case V4L2_PIX_FMT_Y41P:
+    case V4L2_PIX_FMT_YUYV:
+    case V4L2_PIX_FMT_YVYU:
+        vid_format.fmt.pix.bytesperline = (ROUND_UP_2(width) * 2);
+        vid_format.fmt.pix.sizeimage = vid_format.fmt.pix.bytesperline * height;
+        break;
+    default:
+        MOTION_LOG(ERR, TYPE_VIDEO, SHOW_ERRNO, "%s: unable to guess correct settings for pixelformat");
+        return -1;
+    }
+
+    if (ioctl(dev, VIDIOC_S_FMT, &vid_format) == -1) {
+        MOTION_LOG(ERR, TYPE_VIDEO, SHOW_ERRNO, "%s: ioctl (VIDIOC_S_FMT)");
+        return -1;
+    }
+#else
     if (ioctl(dev, VIDIOCGPICT, &vid_pic) == -1) {
         MOTION_LOG(ERR, TYPE_VIDEO, SHOW_ERRNO, "%s: ioctl (VIDIOCGPICT)");
         return -1;
@@ -223,7 +275,7 @@ static int v4l_startpipe(const char *dev_name, int width, int height, int type)
         MOTION_LOG(ERR, TYPE_VIDEO, SHOW_ERRNO, "%s: ioctl (VIDIOCSWIN)");
         return -1;
     }
-
+#endif
     return dev;
 }
 
@@ -253,4 +305,4 @@ int vid_putpipe (int dev, unsigned char *image, int size)
 {
     return v4l_putpipe(dev, image, size);
 }
-#endif /* !WITHOUT_V4L && !BSD */
+#endif /* !WITHOUT_V4L */

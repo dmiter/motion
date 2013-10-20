@@ -48,20 +48,20 @@ typedef unsigned TYPE_32BIT __uint32;
  =============================================================================*/
 
 /**
- * The code below is copied (with modification) from bits/byteswap.h. It provides
- * a macro/function named rot__bswap_32 that swaps the bytes in a 32-bit integer,
- * preferably using the bswap assembler instruction if configure found support
- * for it.
+ * The code below is copied (with modification) from bits/byteswap.h. It
+ * provides a macro/function named rot__bswap_32 that swaps the bytes in a
+ * 32-bit integer, preferably using the bswap assembler instruction if
+ * configure found support for it.
  *
  * It would be neater to simply include byteswap.h and use the bswap_32 macro
  * defined there, but the problem is that the bswap asm instruction would then
  * only be used for certain processor architectures, excluding athlon (and
- * probably athlon64 as well). Moreover, byteswap.h doesn't seem to exist on
- * FreeBSD. So, we rely on the HAVE_BSWAP macro defined by configure instead.
+ * probably athlon64 as well). So, we rely on the HAVE_BSWAP macro defined by
+ * configure instead.
  *
  * Note that the macro names have been prefixed with "rot" in order to avoid
- * collision since we have the include chain rotate.h -> motion.h -> netcam.h ->
- * netinet/in.h -> ... -> byteswap.h -> bits/byteswap.h.
+ * collision since we have the include chain rotate.h -> motion.h -> netcam.h
+ * -> netinet/in.h -> ... -> byteswap.h -> bits/byteswap.h.
  */
 
 /* Swap bytes in 32 bit value. This is used as a fallback and for constants. */

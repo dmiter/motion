@@ -9,7 +9,7 @@
 #include <math.h>
 #include "motion.h"
 
-#if defined(HAVE_LINUX_VIDEODEV_H) && (!defined(WITHOUT_V4L))
+#if (defined(HAVE_LINUX_VIDEODEV_H) || defined(MOTION_V4L2)) && (!defined(WITHOUT_V4L))
 #include "pwc-ioctl.h"
 #endif
 
@@ -56,12 +56,13 @@ static unsigned int iomojo_move(struct context *cnt, int dev, struct coord *cent
 static unsigned int lqos_center(struct context *cnt, int dev, int xoff, int yoff);
 static unsigned int lqos_move(struct context *cnt, int dev, struct coord *cent,
                                     struct images *imgs, unsigned int manual);
+#endif /* WITHOUT_V4L */
+
 #ifdef MOTION_V4L2
 static unsigned int uvc_center(struct context *cnt, int dev, int xoff, int yoff);
 static unsigned int uvc_move(struct context *cnt, int dev, struct coord *cent,
                                    struct images *imgs, unsigned int manual);
 #endif /* MOTION_V4L2 */
-#endif /* WITHOUT_V4L */
 
 /* Add a call to your functions here: */
 unsigned int track_center(struct context *cnt, int dev ATTRIBUTE_UNUSED,
@@ -84,11 +85,11 @@ unsigned int track_center(struct context *cnt, int dev ATTRIBUTE_UNUSED,
 #if defined(HAVE_LINUX_VIDEODEV_H) && (!defined(WITHOUT_V4L))
     else if (cnt->track.type == TRACK_TYPE_PWC)
         return lqos_center(cnt, dev, xoff, yoff);
+#endif /* WITHOUT_V4L */
 #ifdef MOTION_V4L2
     else if (cnt->track.type == TRACK_TYPE_UVC)
         return uvc_center(cnt, dev, xoff, yoff);
 #endif /* MOTION_V4L2 */
-#endif /* WITHOUT_V4L */
     else if (cnt->track.type == TRACK_TYPE_IOMOJO)
         return iomojo_center(cnt, xoff, yoff);
     else if (cnt->track.type == TRACK_TYPE_GENERIC)
@@ -115,11 +116,11 @@ unsigned int track_move(struct context *cnt, int dev, struct coord *cent, struct
 #if defined(HAVE_LINUX_VIDEODEV_H) && (!defined(WITHOUT_V4L))
     else if (cnt->track.type == TRACK_TYPE_PWC)
         return lqos_move(cnt, dev, cent, imgs, manual);
+#endif /* WITHOUT_V4L */
 #ifdef MOTION_V4L2
     else if (cnt->track.type == TRACK_TYPE_UVC)
         return uvc_move(cnt, dev, cent, imgs, manual);
 #endif /* MOTION_V4L2 */
-#endif /* WITHOUT_V4L */
     else if (cnt->track.type == TRACK_TYPE_IOMOJO)
         return iomojo_move(cnt, dev, cent, imgs);
     else if (cnt->track.type == TRACK_TYPE_GENERIC)
@@ -563,7 +564,6 @@ static unsigned int servo_status(struct context *cnt, unsigned int motor)
 
 static unsigned int servo_center(struct context *cnt, int x_offset, int y_offset)
 {
-    unsigned int ret = 0;
     int x_offset_abs;
     int y_offset_abs;
 
@@ -591,7 +591,7 @@ static unsigned int servo_center(struct context *cnt, int x_offset, int y_offset
     if (x_offset_abs <= cnt->track.maxx  && x_offset_abs >= cnt->track.minx) {
         /* Set Speed , TODO : it should be done only when speed changes */
         servo_command(cnt, cnt->track.motorx, SERVO_COMMAND_SPEED, cnt->track.speed);
-        ret = servo_command(cnt, cnt->track.motorx, SERVO_COMMAND_ABSOLUTE, x_offset_abs);
+        servo_command(cnt, cnt->track.motorx, SERVO_COMMAND_ABSOLUTE, x_offset_abs);
     }
 
     /* y-axis */
@@ -603,7 +603,7 @@ static unsigned int servo_center(struct context *cnt, int x_offset, int y_offset
     if (y_offset_abs <= cnt->track.maxy && y_offset_abs >= cnt->track.minx) {
         /* Set Speed , TODO : it should be done only when speed changes */
         servo_command(cnt, cnt->track.motory, SERVO_COMMAND_SPEED, cnt->track.speed);
-        ret = servo_command(cnt, cnt->track.motory, SERVO_COMMAND_ABSOLUTE, y_offset_abs);
+        servo_command(cnt, cnt->track.motory, SERVO_COMMAND_ABSOLUTE, y_offset_abs);
     }
 
     return cnt->track.move_wait;
@@ -906,6 +906,8 @@ static unsigned int lqos_move(struct context *cnt, int dev, struct coord *cent,
 
     return cnt->track.move_wait;
 }
+#endif /* WITHOUT_V4L */
+
 /******************************************************************************
 
     Logitech QuickCam Sphere camera tracking code by oBi
@@ -1228,4 +1230,3 @@ static unsigned int uvc_move(struct context *cnt, int dev, struct coord *cent,
     return cnt->track.move_wait;
 }
 #endif /* MOTION_V4L2 */
-#endif /* WITHOUT_V4L */

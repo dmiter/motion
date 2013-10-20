@@ -679,7 +679,6 @@ static void put_ppm_bgr24_file(FILE *picture, unsigned char *image, int width, i
     unsigned char *u = image + width * height;
     unsigned char *v = u + (width * height) / 4;
     int r, g, b;
-    int warningkiller;
     unsigned char rgb[3];
 
     /*
@@ -722,7 +721,7 @@ static void put_ppm_bgr24_file(FILE *picture, unsigned char *image, int width, i
                 v++;
             }
             /* ppm is rgb not bgr */
-            warningkiller = fwrite(rgb, 1, 3, picture);
+            fwrite(rgb, 1, 3, picture);
         }
         if (y & 1) {
             u -= width / 2;

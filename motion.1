@@ -621,11 +621,6 @@ Values: 0 (none), 1 (stepper), 2 (iomojo), 3 (pwc), 4 (generic), 5 (uvcvideo)  /
 .br
 Type of tracker.
 .TP
-.B tunerdevice string
-Values: Max 4095 characters / Default: /dev/tuner0
-.br
-The tuner device used for controlling the tuner in a tuner card. This option is only used when Motion is compiled for FreeBSD.
-.TP
 .B use_extpipe boolean
 Values: on, off / Default: off
 .br
@@ -642,9 +637,9 @@ Values: Max 4095 characters / Default: Not defined
 The video4linux video loopback input device for normal images. If a particular pipe is to be used then use the device filename of this pipe. If a dash '-' is given motion will use /proc/video/vloopback/vloopbacks to locate a free pipe.
 .TP
 .B videodevice string
-Values: Max 4095 characters / Default: /dev/video0 (FreeBSD: /dev/bktr0)
+Values: Max 4095 characters / Default: /dev/video0
 .br
-The video device to be used for capturing. Default for Linux is /dev/video0. for FreeBSD the default is /dev/bktr0.
+The video device to be used for capturing. Default for Linux is /dev/video0.
 .TP
 .B webcontrol_authentication string
 Values: Max 4096 characters / Default: Not defined

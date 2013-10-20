@@ -777,7 +777,7 @@ static int vid_v4lx_start(struct context *cnt)
         dev->height = height;
 #endif
 
-#if defined(HAVE_LINUX_VIDEODEV_H) && (!defined(WITHOUT_V4L))      
+#if defined(HAVE_LINUX_VIDEODEV_H) && (!defined(WITHOUT_V4L))
         if (!v4l_start(dev, width, height, input, norm, frequency, tuner_number)) {
             close(dev->fd);
             pthread_mutexattr_destroy(&dev->attr);
@@ -961,6 +961,6 @@ int vid_next(struct context *cnt, unsigned char *map)
             rotate_map(cnt, map);
 
     }
-#endif  /*WITHOUT_V4L */
+#endif  /* WITHOUT_V4L */
     return ret;
 }

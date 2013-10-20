@@ -1,3 +1,12 @@
 *.log
-.svn/
 *.o
+*.conf
+.depend
+Makefile
+config.h
+config.status
+autom4te.cache/
+motion
+motion.init-Debian
+motion.init-Fedora
+motion.spec

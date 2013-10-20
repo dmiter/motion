@@ -79,7 +79,6 @@ rm -rf %{buildroot}
 %doc CHANGELOG COPYING CREDITS INSTALL README motion_guide.html
 %attr(0644,root,root) %{_datadir}/%{name}-%{version}/examples/motion-dist.conf
 %attr(0755,root,root) %{_datadir}/%{name}-%{version}/examples/motion.init-Debian
-%attr(0755,root,root) %{_datadir}/%{name}-%{version}/examples/motion.init-FreeBSD.sh
 %attr(0755,root,root) %{_datadir}/%{name}-%{version}/examples/motion.init-Fedora
 %attr(0644,root,root) %{_datadir}/%{name}-%{version}/examples/thread1.conf
 %attr(0644,root,root) %{_datadir}/%{name}-%{version}/examples/thread2.conf

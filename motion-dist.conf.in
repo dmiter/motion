@@ -67,10 +67,6 @@ videodevice /dev/video0
 #
 v4l2_palette 17
 
-# Tuner device to be used for capturing using tuner as source (default /dev/tuner0)
-# This is ONLY used for FreeBSD. Leave it commented out for Linux
-; tunerdevice /dev/tuner0
-
 # The video input to be used (default: -1)
 # Should normally be set to 0 or 1 for video/TV cards, and -1 for USB cameras
 input -1

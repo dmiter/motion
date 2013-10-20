@@ -279,8 +279,7 @@ static void send_template(int client_socket, char *res)
  */
 static void send_template_raw(int client_socket, char *res)
 {
-    ssize_t nwrite = 0;
-    nwrite = write_nonblock(client_socket, res, strlen(res));
+    write_nonblock(client_socket, res, strlen(res));
 }
 
 /**
@@ -288,8 +287,7 @@ static void send_template_raw(int client_socket, char *res)
  */
 static void send_template_end_client(int client_socket)
 {
-    ssize_t nwrite = 0;
-    nwrite = write_nonblock(client_socket, end_template, strlen(end_template));
+    write_nonblock(client_socket, end_template, strlen(end_template));
 }
 
 /**
@@ -297,8 +295,7 @@ static void send_template_end_client(int client_socket)
  */
 static void response_client(int client_socket, const char *template, char *back)
 {
-    ssize_t nwrite = 0;
-    nwrite = write_nonblock(client_socket, template, strlen(template));
+    write_nonblock(client_socket, template, strlen(template));
     if (back != NULL) {
         send_template(client_socket, back);
         send_template_end_client(client_socket);
@@ -2407,21 +2404,16 @@ void httpd_run(struct context **cnt)
     memset(&hints, 0, sizeof(struct addrinfo));
     /* AI_PASSIVE as we are going to listen */
     hints.ai_flags = AI_PASSIVE;
-#if defined(BSD)
-    hints.ai_family = AF_INET;
-#else
     if (!cnt[0]->conf.ipv6_enabled)
         hints.ai_family = AF_INET;
     else
         hints.ai_family = AF_UNSPEC;
-#endif
     hints.ai_socktype = SOCK_STREAM;
 
     snprintf(portnumber, sizeof(portnumber), "%u", cnt[0]->conf.webcontrol_port);
 
     val = getaddrinfo(cnt[0]->conf.webcontrol_localhost ? "localhost" : NULL, portnumber, &hints, &res);
 
-    /* check != 0 to allow FreeBSD compatibility */
     if (val != 0) {
         MOTION_LOG(CRT, TYPE_STREAM, SHOW_ERRNO, "%s: getaddrinfo() for httpd socket failed: %s",
                    gai_strerror(val));
