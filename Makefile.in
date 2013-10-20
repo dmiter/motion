@@ -65,7 +65,6 @@ pre-build-info:
 	@echo "Run \"make updateguide\" to download the latest version of the Motion Guide."
 	@echo
 	@echo "Version: @PACKAGE_VERSION@"
-	@echo "Platform: Linux"
 	@echo
 
 ################################################################################
