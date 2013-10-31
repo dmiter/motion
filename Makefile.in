@@ -1,3 +1,4 @@
+# @configure_input@
 ################################################################################
 # Makefile for Motion                                                          #
 ################################################################################
@@ -11,7 +12,11 @@
 ################################################################################
 
 CC      = @CC@
-INSTALL = install
+MKDIR_P = @MKDIR_P@
+INSTALL = @INSTALL@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
 
 ################################################################################
 # Install locations, controlled by setting configure flags.                    #
@@ -30,14 +35,14 @@ examplesdir = $(datadir)/@PACKAGE_NAME@-@PACKAGE_VERSION@/examples
 # These variables contain compiler flags, object files to build and files to   #
 # install.                                                                     #
 ################################################################################
-CFLAGS       = @CFLAGS@ -Wall -DVERSION=\"@PACKAGE_VERSION@\" -Dsysconfdir=\"$(sysconfdir)\"
+CFLAGS       = -Wall @CFLAGS@ -include config.h \
+		-DVERSION=\"@PACKAGE_VERSION@\" -Dsysconfdir=\"$(sysconfdir)\"
 LDFLAGS      = @LDFLAGS@
 LIBS         = @LIBS@
-VIDEO_OBJ    = @VIDEO@
 OBJ          = motion.o logger.o conf.o draw.o jpegutils.o vloopback_motion.o \
 		netcam.o netcam_ftp.o netcam_jpeg.o netcam_wget.o track.o \
 		alg.o event.o picture.o rotate.o webhttpd.o \
-		stream.o md5.o $(VIDEO_OBJ) @FFMPEG_OBJ@ @SDL_OBJ@
+		stream.o md5.o @VIDEO_OBJ@ @FFMPEG_OBJ@ @SDL_OBJ@
 SRC          = $(OBJ:.o=.c)
 DOC          = CHANGELOG COPYING CREDITS INSTALL README motion_guide.html
 EXAMPLES     = *.conf motion.init-Debian motion.init-Fedora
@@ -120,22 +125,16 @@ $(DEPEND_FILE): *.h $(SRC)
 ################################################################################
 dep depend fastdep: $(DEPEND_FILE)
 
-
 ################################################################################
 # DEV, BUILD with developer flags                                              #
 ################################################################################
 dev: distclean autotools all
 
 autotools:
-	autoconf
+	autoreconf -vi
 	./configure --with-developer-flags
 
-
-build-commit: distclean set-version all
-
-set-version:
-	autoconf
-	./configure --with-developer-flags
+build-commit: distclean autotools all
 
 help:
 	@echo "--------------------------------------------------------------------------------"
@@ -155,18 +154,18 @@ help:
 install:
 	@echo "Installing files..."
 	@echo "--------------------------------------------------------------------------------"
-	mkdir -p $(DESTDIR)$(bindir)
-	mkdir -p $(DESTDIR)$(mandir)/man1
-	mkdir -p $(DESTDIR)$(sysconfdir)
-	mkdir -p $(DESTDIR)$(docdir)
-	mkdir -p $(DESTDIR)$(examplesdir)
-	$(INSTALL) motion.1 $(DESTDIR)$(mandir)/man1
-	$(INSTALL) $(DOC) $(DESTDIR)$(docdir)
-	$(INSTALL) $(EXAMPLES) $(DESTDIR)$(examplesdir)
-	$(INSTALL) motion-dist.conf $(DESTDIR)$(sysconfdir)
+	$(MKDIR_P) $(DESTDIR)$(bindir)
+	$(MKDIR_P) $(DESTDIR)$(mandir)/man1
+	$(MKDIR_P) $(DESTDIR)$(sysconfdir)
+	$(MKDIR_P) $(DESTDIR)$(docdir)
+	$(MKDIR_P) $(DESTDIR)$(examplesdir)
+	$(INSTALL_DATA) motion.1 $(DESTDIR)$(mandir)/man1
+	$(INSTALL_DATA) $(DOC) $(DESTDIR)$(docdir)
+	$(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)$(examplesdir)
+	$(INSTALL_DATA) motion-dist.conf $(DESTDIR)$(sysconfdir)
 	for prog in $(PROGS); \
 	do \
-		($(INSTALL) $$prog $(DESTDIR)$(bindir) ); \
+		($(INSTALL_PROGRAM) $$prog $(DESTDIR)$(bindir) ); \
 	done
 	@echo "--------------------------------------------------------------------------------"
 	@echo "Install complete! The default configuration file, motion-dist.conf, has been"

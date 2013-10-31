@@ -1,3 +1,4 @@
+#ifdef HAVE_V4L2
 /*
  *    video2.c
  *
@@ -67,15 +68,11 @@
 
  let's go :)
 */
-
-#if !defined(WITHOUT_V4L) && defined(MOTION_V4L2)
-
 #include "motion.h"
 #include "video.h"
 
-#ifdef MOTION_V4L2_OLD
-// Seems that is needed for some system
-#include <linux/time.h>
+#ifdef HAVE_LINUX_VIDEODEV2_H
+#include <linux/time.h> /* Seems that is needed for some system */
 #include <linux/videodev2.h>
 #endif
 
@@ -1109,4 +1106,4 @@ void v4l2_cleanup(struct video_dev *viddev)
     free(vid_source);
     viddev->v4l2_private = NULL;
 }
-#endif /* !WITHOUT_V4L && MOTION_V4L2 */
+#endif /* HAVE_V4L2 */

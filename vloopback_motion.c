@@ -9,9 +9,24 @@
  *
  */
 #include "vloopback_motion.h"
-#if (defined(HAVE_LINUX_VIDEODEV_H) || defined(MOTION_V4L2)) && (!defined(WITHOUT_V4L))
+#if defined(HAVE_V4L) || defined(HAVE_V4L2)
 #include <sys/utsname.h>
-#include <dirent.h>
+#if HAVE_DIRENT_H
+# include <dirent.h>
+# define NAMLEN(dirent) strlen((dirent)->d_name)
+#else
+# define dirent direct
+# define NAMLEN(dirent) (dirent)->d_namlen
+# if HAVE_SYS_NDIR_H
+#  include <sys/ndir.h>
+# endif
+# if HAVE_SYS_DIR_H
+#  include <sys/dir.h>
+# endif
+# if HAVE_NDIR_H
+#  include <ndir.h>
+# endif
+#endif
 
 #define ROUND_UP_2(num)  (((num)+1)&~1)
 #define ROUND_UP_4(num)  (((num)+3)&~3)
@@ -186,13 +201,14 @@ static int v4l_open_vidpipe(void)
  * v4l_startpipe
  *
  */
-static int v4l_startpipe(const char *dev_name, int width, int height, int type)
+static int v4l_startpipe(const char *dev_name, int width, int height, int type ATTRIBUTE_UNUSED)
 {
     int dev;
-#ifdef MOTION_V4L2
+#ifdef HAVE_V4L2
     struct v4l2_capability vid_caps;
     struct v4l2_format vid_format;
-#else
+#endif
+#ifdef HAVE_V4L
     struct video_picture vid_pic;
     struct video_window vid_win;
 #endif
@@ -211,7 +227,7 @@ static int v4l_startpipe(const char *dev_name, int width, int height, int type)
         return -1;
     }
 
-#ifdef MOTION_V4L2
+#ifdef HAVE_V4L2
     if (ioctl(dev, VIDIOC_QUERYCAP, &vid_caps) == -1) {
         MOTION_LOG(ERR, TYPE_VIDEO, SHOW_ERRNO, "%s: ioctl (VIDIOC_QUERYCAP)");
         return -1;
@@ -250,7 +266,8 @@ static int v4l_startpipe(const char *dev_name, int width, int height, int type)
         MOTION_LOG(ERR, TYPE_VIDEO, SHOW_ERRNO, "%s: ioctl (VIDIOC_S_FMT)");
         return -1;
     }
-#else
+#endif
+#ifdef HAVE_V4L
     if (ioctl(dev, VIDIOCGPICT, &vid_pic) == -1) {
         MOTION_LOG(ERR, TYPE_VIDEO, SHOW_ERRNO, "%s: ioctl (VIDIOCGPICT)");
         return -1;
@@ -305,4 +322,4 @@ int vid_putpipe (int dev, unsigned char *image, int size)
 {
     return v4l_putpipe(dev, image, size);
 }
-#endif /* !WITHOUT_V4L */
+#endif /* HAVE_V4L || HAVE_V4L2 */

@@ -94,7 +94,6 @@ static unsigned char mpeg1_trailer[] = {0x00, 0x00, 0x01, 0xb7};
 
 // TODO
 
-	
 #else
 
 /**

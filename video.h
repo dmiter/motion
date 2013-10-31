@@ -13,9 +13,10 @@
 #define _LINUX_TIME_H 1
 #include <sys/mman.h>
 
-
-#if defined(HAVE_LINUX_VIDEODEV_H) && (!defined(WITHOUT_V4L))
+#if defined(HAVE_V4L) || defined(HAVE_V4L2)
+#ifdef HAVE_LINUX_VIDEODEV_H
 #include <linux/videodev.h>
+#endif
 #endif
 #include "pwc-ioctl.h"
 #include "vloopback_motion.h"
@@ -71,7 +72,7 @@ struct video_dev {
     int frames;
 
     /* Device type specific stuff: */
-#ifndef WITHOUT_V4L
+#if defined(HAVE_V4L) || defined(HAVE_V4L2)
     /* v4l */
     int v4l2;
     void *v4l2_private;
@@ -99,14 +100,16 @@ void bayer2rgb24(unsigned char *dst, unsigned char *src, long int width, long in
 int vid_do_autobright(struct context *cnt, struct video_dev *viddev);
 int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int height, unsigned int size);
 
-#ifndef WITHOUT_V4L
+#ifdef HAVE_V4L
 /* video functions, video.c */
 unsigned char *v4l_start(struct video_dev *viddev, int width, int height,
                          int input, int norm, unsigned long freq, int tuner_number);
 void v4l_set_input(struct context *cnt, struct video_dev *viddev, unsigned char *map, int width, int height,
                    struct config *conf);
 int v4l_next(struct video_dev *viddev, unsigned char *map, int width, int height);
+#endif /* HAVE_V4L */
 
+#ifdef HAVE_V4L2
 /* video2.c */
 unsigned char *v4l2_start(struct context *cnt, struct video_dev *viddev, int width, int height,
                           int input, int norm, unsigned long freq, int tuner_number);
@@ -115,6 +118,6 @@ void v4l2_set_input(struct context *cnt, struct video_dev *viddev, unsigned char
 int v4l2_next(struct context *cnt, struct video_dev *viddev, unsigned char *map, int width, int height);
 void v4l2_close(struct video_dev *viddev);
 void v4l2_cleanup(struct video_dev *viddev);
-#endif /* WITHOUT_V4L */
+#endif /* HAVE_V4L2 */
 
 #endif /* _INCLUDE_VIDEO_H */

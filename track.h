@@ -74,8 +74,6 @@ unsigned int track_move(struct context *, int, struct coord *, struct images *, 
 #define STEPPER_STATUS_SAFETYU  4
 #define STEPPER_STATUS_SAFETYD  8
 
-
-
 #define STEPPER_COMMAND_STATUS  0
 #define STEPPER_COMMAND_LEFT_N  1
 #define STEPPER_COMMAND_RIGHT_N 2
@@ -89,8 +87,6 @@ unsigned int track_move(struct context *, int, struct coord *, struct images *, 
 #define STEPPER_COMMAND_DOWN_N  2
 #define STEPPER_COMMAND_UP      3
 #define STEPPER_COMMAND_DOWN    4
-
-
 
 /*
  * Some defines for the Serial servo motor:
@@ -128,13 +124,10 @@ unsigned int track_move(struct context *, int, struct coord *, struct images *, 
 #define SERVO_COMMAND_ABSOLUTE 8
 #define SERVO_COMMAND_POSITION 9
 
-
 #define SERVO_COMMAND_UP_N     1
 #define SERVO_COMMAND_DOWN_N   2
 #define SERVO_COMMAND_UP       3
 #define SERVO_COMMAND_DOWN     4
-
-
 
 /*
  * Some defines for the Iomojo Smilecam:
@@ -155,7 +148,7 @@ unsigned int track_move(struct context *, int, struct coord *, struct images *, 
 #define IOMOJO_DIRECTION_DOWN   0x04
 #define IOMOJO_DIRECTION_UP     0x08
 
-#ifndef WITHOUT_V4L
+#ifdef HAVE_V4L
 
 /*
  * Defines for the Logitech QuickCam Orbit/Sphere USB webcam
@@ -164,11 +157,13 @@ unsigned int track_move(struct context *, int, struct coord *, struct images *, 
 #define LQOS_VERTICAL_DEGREES   180
 #define LQOS_HORIZONAL_DEGREES  120
 
+#endif /* HAVE_V4L */
+
+#ifdef HAVE_V4L2
+
 /*
  * UVC
  */
-
-#ifdef MOTION_V4L2
 
 #ifndef V4L2_CID_PAN_RELATIVE
 #define V4L2_CID_PAN_RELATIVE   (V4L2_CID_PRIVATE_BASE+7)
@@ -183,9 +178,7 @@ unsigned int track_move(struct context *, int, struct coord *, struct images *, 
 #endif
 
 #define INCPANTILT 64 // 1 degree
-#endif /* MOTION_V4L2 */
 
-
-#endif /* WITHOUT_V4L */
+#endif /* HAVE_V4L2 */
 
 #endif /* _INCLUDE_TRACK_H */

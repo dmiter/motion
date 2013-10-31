@@ -13,7 +13,9 @@
 #define _INCLUDE_LOGGER_H_
 
 #include "motion.h"
+#ifdef HAVE_SYSLOG_H
 #include <syslog.h>
+#endif
 
 /* Logging mode */
 #define LOGMODE_FILE            0   /* Log messages to file   */

@@ -324,7 +324,11 @@ static char *replace(const char *str, const char *old, const char *new)
 
     for (r = ret, p = str; (q = strstr(p, old)) != NULL; p = q + oldlen) {
         /* this is undefined if q - p > PTRDIFF_MAX */
+#ifdef HAVE_PTRDIFF_T
         ptrdiff_t l = q - p;
+#else
+        size_t l = q - p;
+#endif
         memcpy(r, p, l);
         r += l;
         memcpy(r, new, newlen);

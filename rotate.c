@@ -31,18 +31,6 @@
  */
 #include "rotate.h"
 
-#ifndef __uint32
-/**
- * We don't have a 32-bit unsigned integer type, so define it, given
- * a 32-bit type was found by configure.
- */
-#    ifdef TYPE_32BIT
-typedef unsigned TYPE_32BIT __uint32;
-#    else
-#        error "Failed to find a 32-bit integer type."
-#    endif
-#endif
-
 /*=============================================================================
                     Start of code from bits/byteswap.h
  =============================================================================*/
@@ -78,7 +66,7 @@ typedef unsigned TYPE_32BIT __uint32;
 /* Bswap is not available, we have to use three instructions instead. */
 #            define rot__bswap_32(x)                                \
                 (__extension__                                      \
-                ({ register __uint32 __v, __x = (x);                \
+                ({ register uint32_t __v, __x = (x);                \
                 if (__builtin_constant_p (__x))                     \
                     __v = rot__bswap_constant_32 (__x);             \
                 else                                                \
@@ -92,7 +80,7 @@ typedef unsigned TYPE_32BIT __uint32;
 #        else
 #            define rot__bswap_32(x)                                \
                 (__extension__                                      \
-                ({ register __uint32 __v, __x = (x);                \
+                ({ register uint32_t __v, __x = (x);                \
                 if (__builtin_constant_p (__x))                     \
                     __v = rot__bswap_constant_32 (__x);             \
                 else                                                \
@@ -103,12 +91,12 @@ typedef unsigned TYPE_32BIT __uint32;
 /* Non-Intel platform or too old version of gcc. */
 #        define rot__bswap_32(x)                                    \
             (__extension__                                          \
-            ({ register __uint32 __x = (x);                         \
+            ({ register uint32_t __x = (x);                         \
             rot__bswap_constant_32 (__x); }))
 #    endif
 #else
 /* Not a GNU compiler. */
-static inline __uint32 rot__bswap_32(__uint32 __bsx)
+static inline uint32_t rot__bswap_32(uint32_t __bsx)
 {
     return __bswap_constant_32 (__bsx);
 }
@@ -125,7 +113,7 @@ static inline __uint32 rot__bswap_32(__uint32 __bsx)
  * reverse_inplace_quad
  *
  *  Reverses a block of memory in-place, 4 bytes at a time. This function
- *  requires the __uint32 type, which is 32 bits wide.
+ *  requires the uint32_t type, which is 32 bits wide.
  *
  * Parameters:
  *
@@ -136,9 +124,9 @@ static inline __uint32 rot__bswap_32(__uint32 __bsx)
  */
 static void reverse_inplace_quad(unsigned char *src, int size)
 {
-    __uint32 *nsrc = (__uint32 *)src;              /* first quad */
-    __uint32 *ndst = (__uint32 *)(src + size - 4); /* last quad */
-    register __uint32 tmp;
+    uint32_t *nsrc = (uint32_t *)src;              /* first quad */
+    uint32_t *ndst = (uint32_t *)(src + size - 4); /* last quad */
+    register uint32_t tmp;
 
     while (nsrc < ndst) {
         tmp = swap_bytes(*ndst);

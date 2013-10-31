@@ -1,3 +1,4 @@
+#ifdef HAVE_V4L
 /*
  *    video.c
  *
@@ -10,8 +11,6 @@
 /* Common stuff: */
 #include "rotate.h"     /* already includes motion.h */
 #include "video.h"
-
-#if defined(HAVE_LINUX_VIDEODEV_H) && !defined(WITHOUT_V4L)
 
 /**
  * v4l_picture_controls
@@ -419,4 +418,4 @@ void v4l_set_input(struct context *cnt, struct video_dev *viddev, unsigned char 
         v4l_picture_controls(cnt, viddev);
     }
 }
-#endif /* !WITHOUT_V4L */
+#endif /* HAVE_V4L */

@@ -267,7 +267,7 @@ static void event_sdl_put(struct context *cnt, int type ATTRIBUTE_UNUSED,
 #endif
 
 
-#if (defined(HAVE_LINUX_VIDEODEV_H) || defined(MOTION_V4L2)) && (!defined(WITHOUT_V4L))
+#if defined(HAVE_V4L) || defined(HAVE_V4L2)
 static void event_vid_putpipe(struct context *cnt, int type ATTRIBUTE_UNUSED,
             unsigned char *img, char *dummy ATTRIBUTE_UNUSED, void *devpipe,
             struct tm *tm ATTRIBUTE_UNUSED)
@@ -277,7 +277,7 @@ static void event_vid_putpipe(struct context *cnt, int type ATTRIBUTE_UNUSED,
             MOTION_LOG(ERR, TYPE_EVENTS, SHOW_ERRNO, "%s: Failed to put image into video pipe");
     }
 }
-#endif /* !WITHOUT_V4L */
+#endif /* HAVE_V4L || HAVE_V4L2 */
 
 const char *imageext(struct context *cnt)
 {
@@ -831,7 +831,7 @@ struct event_handlers event_handlers[] = {
     event_sdl_put
     },
 #endif
-#if (defined(HAVE_LINUX_VIDEODEV_H) || defined(MOTION_V4L2)) && (!defined(WITHOUT_V4L))
+#if defined(HAVE_V4L) || defined(HAVE_V4L2)
     {
     EVENT_IMAGE,
     event_vid_putpipe
@@ -840,7 +840,7 @@ struct event_handlers event_handlers[] = {
     EVENT_IMAGEM,
     event_vid_putpipe
     },
-#endif /* !WITHOUT_V4L */
+#endif /* HAVE_V4L || HAVE_V4L2 */
     {
     EVENT_STREAM,
     event_stream_put

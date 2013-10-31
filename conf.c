@@ -29,9 +29,18 @@
 #ifndef HAVE_GET_CURRENT_DIR_NAME
 char *get_current_dir_name(void)
 {
-    char *buf = mymalloc(MAXPATHLEN);
-    getwd(buf);
-    return buf;
+    size_t size = 128;
+    while (1) {
+        char *buf = (char *)mymalloc(size);
+        if (buf == NULL)
+            return NULL;
+        if (getcwd(buf, size) == buf)
+            return buf;
+        free(buf);
+        if (errno != ERANGE)
+            return NULL;
+        size *= 2;
+    }
 }
 #endif
 
@@ -1917,11 +1926,11 @@ struct context **conf_load(struct context **cnt)
         cnt[0]->conf.log_file = mystrcpy(cnt[0]->conf.log_file, cnt[0]->log_file);
 
     /* If log type  was passed from Command-line copy to main thread conf struct. */
-    if (cnt[0]->log_type != -1)
+    if (cnt[0]->log_type != (unsigned int)-1)
         cnt[0]->conf.log_type = cnt[0]->log_type;
 
     /* if log level was passed from Command-line copy to main thread conf struct. */
-    if (cnt[0]->log_level != -1)
+    if (cnt[0]->log_level != (unsigned int)-1)
         cnt[0]->conf.log_level = cnt[0]->log_level;
 
     return cnt;

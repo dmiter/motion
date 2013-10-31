@@ -10,50 +10,87 @@
 #ifndef _INCLUDE_MOTION_H
 #define _INCLUDE_MOTION_H
 
-#include "config.h"
-
-/* Includes */
-#ifdef HAVE_MYSQL
-#include <mysql.h>
-#endif
-
-#ifdef HAVE_SQLITE3
-#include <sqlite3.h>
-#endif
-
-#ifdef HAVE_PGSQL
-#include <libpq-fe.h>
-#endif
-
-
-#include <stdio.h>
-#include <stdlib.h>
 #ifndef __USE_GNU
 #define __USE_GNU
 #endif
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
-#include <signal.h>
-#include <limits.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/ioctl.h>
-#include <sys/param.h>
-#include <stdint.h>
 
+/* Includes */
+#ifdef HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_STAT_H
+# include <sys/stat.h>
+#endif
+#ifdef HAVE_SYS_WAIT_H
+# include <sys/wait.h>
+#endif
+#ifdef HAVE_SYS_IOCTL_H
+#include <sys/ioctl.h>
+#endif
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#include <stdio.h>
+#ifdef STDC_HEADERS
+# include <stdlib.h>
+# include <stddef.h>
+#else
+# ifdef HAVE_STDLIB_H
+#  include <stdlib.h>
+# endif
+#endif
+#ifdef HAVE_STRING_H
+# if !defined STDC_HEADERS && defined HAVE_MEMORY_H
+#  include <memory.h>
+# endif
+# include <string.h>
+#endif
+#ifdef HAVE_STRINGS_H
+# include <strings.h>
+#endif
+#ifdef HAVE_INTTYPES_H
+# include <inttypes.h>
+#endif
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+#ifdef HAVE_SIGNAL_H
+#include <signal.h>
+#endif
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+#include <errno.h>
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+#if TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
+#endif
+
+#if defined(HAVE_V4L) || defined(HAVE_V4L2)
 #define _LINUX_TIME_H 1
-#if defined(HAVE_LINUX_VIDEODEV_H) && (!defined(WITHOUT_V4L))
+#ifdef HAVE_LINUX_VIDEODEV_H
 #include <linux/videodev.h>
 #endif
 
-#ifdef MOTION_V4L2
+#ifdef HAVE_LINUX_VIDEODEV2_H
 #include <linux/videodev2.h>
 #endif
+#endif /* HAVE_V4L || HAVE_V4L2 */
 
 #include <pthread.h>
 
@@ -66,6 +103,17 @@
 #include "sdl.h"
 #endif
 
+#ifdef HAVE_MYSQL
+#include <mysql.h>
+#endif
+
+#ifdef HAVE_SQLITE3
+#include <sqlite3.h>
+#endif
+
+#ifdef HAVE_PGSQL
+#include <libpq-fe.h>
+#endif
 
 /**
  * ATTRIBUTE_UNUSED:
@@ -81,11 +129,6 @@
 #endif
 #else
 #define ATTRIBUTE_UNUSED
-#endif
-
-/* strerror_r() XSI vs GNU */
-#if ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! _GNU_SOURCE)
-#define XSI_STRERROR_R
 #endif
 
 /*
@@ -168,7 +211,6 @@
 
 /* Do not break this line into two or more. Must be ONE line */
 #define DEF_SQL_QUERY "sql_query insert into security(camera, filename, frame, file_type, time_stamp, event_time_stamp) values('%t', '%f', '%q', '%n', '%Y-%m-%d %T', '%C')"
-
 
 /* OUTPUT Image types */
 #define IMAGE_TYPE_JPEG        0
@@ -280,7 +322,6 @@ struct image_data {
 int draw_text(unsigned char *image, unsigned int startx, unsigned int starty, unsigned int width, const char *text, unsigned int factor);
 int initialize_chars(void);
 
-
 #define MAX_LABELS   50
 
 /*  Stores information about each label.
@@ -358,7 +399,7 @@ struct context {
     char pid_file[PATH_MAX];
     char log_file[PATH_MAX];
     char log_type_str[6];
-    int log_level;
+    unsigned int log_level;
     unsigned int log_type;
 
     struct config conf;

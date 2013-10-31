@@ -285,7 +285,7 @@ static void context_destroy(struct context *cnt)
  *
  *  Our SIGNAL-Handler. We need this to handle alarms and external signals.
  */
-static void sig_handler(int signo)
+static RETSIGTYPE sig_handler(int signo)
 {
     int i;
 
@@ -351,6 +351,7 @@ static void sig_handler(int signo)
     case SIGSEGV:
         exit(0);
     }
+    return;
 }
 
 /**
@@ -359,7 +360,7 @@ static void sig_handler(int signo)
  *   This function is a POSIX compliant replacement of the commonly used
  *   signal(SIGCHLD, SIG_IGN).
  */
-static void sigchild_handler(int signo ATTRIBUTE_UNUSED)
+static RETSIGTYPE sigchild_handler(int signo ATTRIBUTE_UNUSED)
 {
 #ifdef WNOHANG
     while (waitpid(-1, NULL, WNOHANG) > 0) {};
@@ -771,7 +772,7 @@ static int motion_init(struct context *cnt)
     /* create a reference frame */
     alg_update_reference_frame(cnt, RESET_REF_FRAME);
 
-#if (defined(HAVE_LINUX_VIDEODEV_H) || defined(MOTION_V4L2)) && (!defined(WITHOUT_V4L))
+#if defined(HAVE_V4L) || defined(HAVE_V4L2)
     /* open video loopback devices if enabled */
     if (cnt->conf.vidpipe) {
         MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, "%s: Opening video loopback device for normal pictures");
@@ -796,7 +797,7 @@ static int motion_init(struct context *cnt)
             return -1;
         }
     }
-#endif /* !WITHOUT_V4L */
+#endif /* HAVE_V4L || HAVE_V4L2 */
 
 #if defined(HAVE_MYSQL) || defined(HAVE_PGSQL) || defined(HAVE_SQLITE3)
     if (cnt->conf.database_type) {
@@ -1653,7 +1654,7 @@ static void *motion_loop(void *arg)
             if (cnt->current_image->total_labels && (cnt->conf.motion_img || cnt->conf.ffmpeg_output_debug ||
                 cnt->conf.setup_mode)) {
                 overlay_largest_label(cnt, cnt->imgs.out);
-        }
+            }
 
             /* Fixed mask overlay */
             if (cnt->imgs.mask && (cnt->conf.motion_img || cnt->conf.ffmpeg_output_debug ||
@@ -2219,7 +2220,7 @@ static void *motion_loop(void *arg)
     }
 
     /*
-     * END OF MOTION MAIN LOOP
+     * END OF MAIN MOTION LOOP
      * If code continues here it is because the thread is exiting or restarting
      */
 err:
@@ -2406,7 +2407,7 @@ static void motion_shutdown(void)
 
     free(cnt_list);
     cnt_list = NULL;
-#ifndef WITHOUT_V4L
+#if defined(HAVE_V4L) || defined(HAVE_V4L2)
     vid_cleanup();
 #endif
 }
@@ -2500,7 +2501,7 @@ static void motion_startup(int daemonize, int argc, char *argv[])
         }
     }
 
-#ifndef WITHOUT_V4L
+#if defined(HAVE_V4L) || defined(HAVE_V4L2)
     vid_init();
 #endif
 }
@@ -2695,7 +2696,7 @@ int main (int argc, char **argv)
             MOTION_LOG(WRN, TYPE_ALL, NO_ERRNO, "%s: Restarting motion.");
             motion_shutdown();
             restart = 0; /* only one reset for now */
-#ifndef WITHOUT_V4L
+#if defined(HAVE_V4L) || defined(HAVE_V4L2)
             SLEEP(5, 0); // maybe some cameras needs less time
 #endif
             motion_startup(0, argc, argv); /* 0 = skip daemon init */

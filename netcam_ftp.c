@@ -8,7 +8,7 @@
  *      See also the file 'COPYING'.
  *
  */
-#include "motion.h"  /* Needs to come first, because _GNU_SOURCE_ set there. */
+#include "motion.h"  /* Needs to come first, because _GNU_SOURCE set there. */
 
 #include <ctype.h>
 #include <netdb.h>
@@ -474,7 +474,7 @@ int ftp_connect(netcam_context_ptr netcam)
         close(ctxt->control_file_desc);
         ctxt->control_file_desc = -1;
         ctxt->control_file_desc = -1;
-        return-1;
+        return -1;
     }
 
     return 0;
@@ -788,7 +788,7 @@ int ftp_get_socket(ftp_context_pointer ctxt)
 * Returns      0 for success, negative error code for failure.
 *
 */
-int ftp_send_type(ftp_context_pointer ctxt, char type)
+int ftp_send_type(ftp_context_pointer ctxt, char type ATTRIBUTE_UNUSED)
 {
     char buf[100];
     int len, res;
